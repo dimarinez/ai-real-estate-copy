@@ -11,7 +11,7 @@ export default function SignIn() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        const result = await signIn("credentials", { email, password, redirect: false, callbackUrl: "/dashboard" });
+        const result = await signIn("credentials", { email, password, callbackUrl: "/dashboard" });
         
         if (result?.error) {
             setError(result.error);
