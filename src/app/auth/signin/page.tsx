@@ -11,7 +11,7 @@ export default function SignIn() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        const result = await signIn("credentials", { email, password, callbackUrl: "/dashboard" });
+        const result = await signIn("credentials", { email, password, callbackUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard` });
         
         if (result?.error) {
             setError(result.error);
@@ -43,7 +43,7 @@ export default function SignIn() {
             </form>
 
             <button
-                onClick={() => signIn('google', { callbackUrl: "/dashboard" })}
+                onClick={() => signIn('google', { callbackUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard` })}
                 className="bg-red-500 text-white p-2 mt-4"
             >
                 Sign in with Google
