@@ -1,22 +1,23 @@
 import { Stripe } from 'stripe';
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import connectDB from "../../../lib/db"; // Your DB connection
-import User from "../../../models/User"; // Your User model
+import connectDB from "../../../lib/db";
+import User from "../../../models/User";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 export async function POST(req: Request) {
+  console.log("Webhook hit!");
+  const stripeSignature = (await headers()).get('stripe-signature');
+  console.log("Stripe-Signature:", stripeSignature || "No signature");
+
+  const body = await req.text();
+  console.log("Raw body:", body);
+
+  console.log("Webhook secret:", process.env.STRIPE_WEBHOOK_SECRET?.slice(0, 8) + "...");
+
   let event: Stripe.Event;
-
   try {
-    // Get the Stripe-Signature header using next/headers
-    const stripeSignature = (await headers()).get('stripe-signature');
-
-    // Get the raw body as text to preserve exact formatting
-    const body = await req.text();
-
-    // Verify the event with the raw body, signature, and secret
     event = stripe.webhooks.constructEvent(
       body,
       stripeSignature as string,
@@ -31,45 +32,20 @@ export async function POST(req: Request) {
     );
   }
 
-  // Successfully constructed event
   console.log('✅ Success:', event.id);
-
-  // Define permitted events
-  const permittedEvents: string[] = [
-    'checkout.session.completed',
-  ];
-
-  if (permittedEvents.includes(event.type)) {
-    try {
-      switch (event.type) {
-        case 'checkout.session.completed':
-          const session = event.data.object as Stripe.Checkout.Session;
-          const { userId, chosenPlan } = session.metadata || {};
-          console.log(`💰 CheckoutSession completed for user ${userId} with plan ${chosenPlan}`);
-
-          // Update user subscription in the database
-          await connectDB();
-          const userDoc = await User.findById(userId);
-          if (userDoc) {
-            userDoc.subscriptionStatus = chosenPlan; // e.g., "basic" or "pro"
-            await userDoc.save();
-            console.log(`✅ Updated user ${userId} subscription to ${chosenPlan}`);
-          } else {
-            console.log(`❌ User ${userId} not found`);
-          }
-          break;
-        default:
-          throw new Error(`Unhandled event: ${event.type}`);
-      }
-    } catch (error) {
-      console.error(`❌ Handler error:`, error);
-      return NextResponse.json(
-        { message: 'Webhook handler failed' },
-        { status: 500 }
-      );
+  // Rest of your logic...
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const { userId, chosenPlan } = session.metadata || {};
+    console.log(`💰 CheckoutSession completed for user ${userId} with plan ${chosenPlan}`);
+    await connectDB();
+    const userDoc = await User.findById(userId);
+    if (userDoc) {
+      userDoc.subscriptionStatus = chosenPlan;
+      await userDoc.save();
+      console.log(`✅ Updated user ${userId} subscription to ${chosenPlan}`);
     }
   }
 
-  // Acknowledge receipt of the event
   return NextResponse.json({ message: 'Received' }, { status: 200 });
 }
