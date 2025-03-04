@@ -7,7 +7,7 @@ import User from "../../../models/User";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 export async function POST(req: Request) {
-  console.log("Webhook hit!");
+  console.log("Webhook hit at:", new Date().toISOString());
   const stripeSignature = (await headers()).get('stripe-signature');
   console.log("Stripe-Signature:", stripeSignature || "No signature");
   const body = await req.text();
@@ -20,6 +20,7 @@ export async function POST(req: Request) {
       stripeSignature as string,
       process.env.STRIPE_WEBHOOK_SECRET as string
     );
+    console.log("Event constructed - ID:", event.id);
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
     console.error(`❌ Signature verification failed: ${errorMessage}`);
@@ -29,38 +30,40 @@ export async function POST(req: Request) {
     );
   }
 
-  console.log('✅ Success: Event ID:', event.id);
-  console.log('Event type:', event.type);
+  console.log('✅ Event type:', event.type);
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
-    console.log("Full session:", JSON.stringify({
-      id: session.id,
-      metadata: session.metadata
-    }, null, 2));
+    console.log("Session ID:", session.id);
+    console.log("Metadata:", JSON.stringify(session.metadata || {}, null, 2));
 
     const { userId, chosenPlan } = session.metadata || {};
-    console.log("Metadata - userId:", userId, "chosenPlan:", chosenPlan);
+    console.log("Extracted - userId:", userId, "chosenPlan:", chosenPlan);
 
     const validPlans = ["basic", "pro"] as const;
     type PlanType = typeof validPlans[number];
     const validatedPlan: PlanType = validPlans.includes(chosenPlan as PlanType)
       ? (chosenPlan as PlanType)
-      : "basic"; // Fallback
+      : "basic";
     console.log("Validated plan:", validatedPlan);
 
-    await connectDB();
-    const userDoc = await User.findById(userId);
-    if (userDoc) {
+    try {
+      await connectDB();
+      const userDoc = await User.findById(userId);
+      if (userDoc) {
         userDoc.subscriptionStatus = validatedPlan;
         await userDoc.save();
         console.log(`✅ Updated user ${userId} to ${userDoc.subscriptionStatus}`);
-    } else {
-        console.log(`❌ User ${userId} not found - proceeding anyway`);
+      } else {
+        console.log(`⚠️ User ${userId} not found`);
+      }
+    } catch (dbErr) {
+      console.error("DB error:", dbErr instanceof Error ? dbErr.message : dbErr);
     }
   } else {
-    console.log("Unhandled event type:", event.type);
+    console.log("Skipping unhandled event:", event.type);
   }
 
+  console.log("Returning 200 response to Stripe");
   return NextResponse.json({ message: 'Received' }, { status: 200 });
 }
