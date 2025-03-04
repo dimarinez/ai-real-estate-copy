@@ -27,7 +27,7 @@ export default function Navbar() {
                             Settings
                         </Link>
                         <button
-                            onClick={() => signOut()}
+                            onClick={() => signOut({ callbackUrl: '/auth/signup' })}
                             className="bg-red-500 px-3 py-2 rounded hover:bg-red-600"
                         >
                             Sign Out

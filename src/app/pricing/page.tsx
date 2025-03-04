@@ -5,12 +5,12 @@ import { useState } from 'react';
 export default function Pricing() {
     const [loading, setLoading] = useState(false);
 
-    const handleCheckout = async (priceId: string) => {
+    const handleCheckout = async (plan: "basic" | "pro") => {
         setLoading(true);
         const res = await fetch('/api/stripe/checkout', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ priceId }),
+            body: JSON.stringify({ plan }),
         });
 
         const { url } = await res.json();
@@ -21,17 +21,18 @@ export default function Pricing() {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen">
             <h1 className="text-2xl font-bold mb-4">Choose a Plan</h1>
+            {loading && 'Loading...'}
 
             <div className="grid grid-cols-2 gap-6">
                 <div className="border p-6 text-center">
                     <h2 className="text-xl font-bold">Basic Plan</h2>
                     <p className="text-gray-600">$10 / month</p>
                     <button
-                        onClick={() => handleCheckout(process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_BASIC!)}
+                        onClick={() => handleCheckout("basic")}
                         disabled={loading}
                         className="bg-blue-500 text-white px-4 py-2 mt-4"
                     >
-                        {loading ? 'Loading...' : 'Subscribe'}
+                        Subscribe
                     </button>
                 </div>
 
@@ -39,11 +40,11 @@ export default function Pricing() {
                     <h2 className="text-xl font-bold">Pro Plan</h2>
                     <p className="text-gray-600">$30 / month</p>
                     <button
-                        onClick={() => handleCheckout(process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PRO!)}
+                        onClick={() => handleCheckout("pro")}
                         disabled={loading}
                         className="bg-green-500 text-white px-4 py-2 mt-4"
                     >
-                        {loading ? 'Loading...' : 'Subscribe'}
+                        Subscribe
                     </button>
                 </div>
             </div>
