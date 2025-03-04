@@ -21,8 +21,8 @@ export async function POST(req: NextRequest) {
   // 1. Determine the correct price ID from environment variables or config
   const priceId =
     plan === "basic"
-      ? process.env.STRIPE_PRICE_ID_BASIC
-      : process.env.STRIPE_PRICE_ID_PRO;
+      ? process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_BASIC
+      : process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PRO;
 
   // 2. Retrieve your user from DB if you want to store userId in metadata
   const user = await User.findOne({ email: session?.user?.email });
