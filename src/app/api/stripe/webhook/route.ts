@@ -26,6 +26,8 @@ export async function POST(req: NextRequest) {
         const session = event.data.object;
         const email = session.customer_email;
 
+        console.log(session);
+
         if (email) {
             const user = await User.findOne({ email });
 

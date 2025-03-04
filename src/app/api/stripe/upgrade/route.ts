@@ -29,8 +29,8 @@ export async function POST() {
             line_items: [{ price: process.env.STRIPE_PRICE_ID_PRO, quantity: 1 }],
             success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/settings?success=true`,
             cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/settings?canceled=true`,
-            customer_email: user.email, // ✅ Ensures email matches MongoDB
-            metadata: { userId: user._id.toString() }, // ✅ Store user ID for later
+            customer_email: user.email,
+            metadata: { userId: user._id.toString() },
         });
 
         return NextResponse.json({ url: stripeSession.url });
