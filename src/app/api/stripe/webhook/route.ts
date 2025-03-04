@@ -1,75 +1,41 @@
-import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '../../../lib/db';
-import User from '../../../models/User';
-import Stripe from 'stripe';
+import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
+import connectDB from "../../../lib/db";
+import User from "../../../models/User";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 export async function POST(req: NextRequest) {
+  const sig = req.headers.get("stripe-signature");
+  let event;
+  const body = await req.text();
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      body,
+      sig!,
+      process.env.STRIPE_WEBHOOK_SECRET as string
+    );
+  } catch (err) {
+    return NextResponse.json({ error: "Invalid signature" + err }, { status: 400 });
+  }
+
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const metadata = session.metadata;
+    // userId + chosenPlan
+    const userId = metadata?.userId;
+    const chosenPlan = metadata?.chosenPlan; // "basic" or "pro"
+
     await connectDB();
-
-    const sig = req.headers.get("stripe-signature") as string;
-    let event;
-
-    try {
-        event = stripe.webhooks.constructEvent(
-            await req.text(),
-            sig,
-            process.env.STRIPE_WEBHOOK_SECRET as string
-        );
-    } catch (error) {
-        console.error('Webhook signature verification failed.', error);
-        return NextResponse.json({ error: 'Webhook error' }, { status: 400 });
+    const userDoc = await User.findById(userId);
+    if (userDoc) {
+      // set userDoc.subscriptionStatus = chosenPlan
+      userDoc.subscriptionStatus = chosenPlan; // e.g. "basic" or "pro"
+      await userDoc.save();
+      console.log(`✅ Updated user ${userId} subscription to ${chosenPlan}`);
     }
+  }
 
-    if (event.type === 'checkout.session.completed') {
-        const session = event.data.object;
-        const email = session.customer_email;
-
-        console.log(session);
-
-        if (email) {
-            const user = await User.findOne({ email });
-
-            if (user) {
-                user.subscriptionStatus = "pro";
-                await user.save();
-                console.log(`User ${email} upgraded to Pro.`);
-            }
-        }
-    } else if (event.type === 'invoice.payment_succeeded') {
-        const invoice = event.data.object;
-        const customerId = invoice.customer;
-
-        const cust = (await stripe.customers.retrieve(customerId as string)) as Stripe.Customer;
-        const email = cust.email;
-
-        if (email) {
-            const user = await User.findOne({ email });
-
-            if (user) {
-                user.subscriptionStatus = "pro";
-                await user.save();
-                console.log(`User ${email} subscription renewed.`);
-            }
-        }
-    } else if (event.type === 'customer.subscription.deleted') {
-        const subscription = event.data.object;
-        const customerId = subscription.customer;
-
-        const cust = (await stripe.customers.retrieve(customerId as string)) as Stripe.Customer;
-        const email = cust.email;
-
-        if (email) {
-            const user = await User.findOne({ email });
-
-            if (user) {
-                user.subscriptionStatus = "free";
-                await user.save();
-                console.log(`User ${email} downgraded to Free.`);
-            }
-        }
-    }
-
-    return NextResponse.json({ received: true });
+  return NextResponse.json({ received: true });
 }
