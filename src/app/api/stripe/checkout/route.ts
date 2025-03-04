@@ -40,10 +40,9 @@ export async function POST(req: NextRequest) {
         quantity: 1,
       },
     ],
-    customer_email: session?.user?.email,
     success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/pricing`,
-    // store userId & chosen plan in metadata for the webhook
+    customer_email: user.email,
     metadata: {
       userId: user._id.toString(),
       chosenPlan: plan, // "basic" or "pro"
