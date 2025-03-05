@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import connectDB from '../../../lib/db';
 import User, { IUser } from '../../../models/User';
+import {buffer} from 'micro';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
@@ -67,7 +68,8 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   try {
     const body = await req.text();
-    const stripeSignature = (await headers()).get('stripe-signature');
+    const headerList = await headers();
+    const stripeSignature = headerList.get('stripe-signature');
 
     console.log('Stripe-Signature:', stripeSignature || 'No signature');
     console.log('Raw body:', body.slice(0, 200));
