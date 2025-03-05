@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import connectDB from '../../../lib/db';
 import User, { IUser } from '../../../models/User';
-import {buffer} from 'micro';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
