@@ -1,3 +1,4 @@
+// src/app/api/generate/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../lib/auth';
@@ -28,14 +29,15 @@ export async function POST(req: NextRequest) {
   const { propertyType, location, features, tone, language } = await req.json();
 
   const combinedPrompt = `
-    Write a ${tone} real estate listing in ${language} for a ${propertyType} in ${location}. Features: ${features.join(', ')}.
+    First, write a ${tone} real estate listing in ${language} for a ${propertyType} in ${location}. Features: ${features.join(', ')}.
     ${user.subscriptionStatus !== 'free' ? `
-    Also generate:
+    Then, generate the following, each separated by "---":
     - A short and catchy tweet
     - An Instagram caption with hashtags
     - A Facebook post
     - A LinkedIn post in a professional tone
-    Separate each section with "---".
+    Do not include section headers like "**Tweet:**" or "**Real Estate Listing:**" in the output. Use only "---" to separate sections.
+    Ensure there is no leading "---" at the start of the response.
     ` : ''}
   `;
 
@@ -49,21 +51,30 @@ export async function POST(req: NextRequest) {
     max_tokens: user.subscriptionStatus === 'free' ? 300 : 600,
   });
 
-  // Safeguard against null/undefined content
   const content = response.choices[0]?.message.content;
   if (!content) {
     return NextResponse.json({ error: 'Failed to generate content' }, { status: 500 });
   }
 
-  const result = content.split('---');
-  const generatedText = result[0].trim();
+  // Log raw content for debugging
+  console.log('Raw OpenAI content:', content);
+
+  // Split and filter out empty sections or leading separators
+  const result = content.split('---').filter((section) => section.trim() !== '');
+  console.log('Filtered split result:', result);
+
+  // Extract listing and social content, removing unwanted headers
+  const cleanSection = (text: string) =>
+    text.replace(/\*\*Real Estate Listing:\*\*|\*\*Tweet:\*\*|\*\*Instagram Caption:\*\*|\*\*Facebook Post:\*\*|\*\*LinkedIn Post:\*\*/g, '').trim();
+
+  const generatedText = cleanSection(result[0] || '');
   const socialContent = user.subscriptionStatus === 'free'
     ? {}
     : {
-        twitter: result[1]?.trim() || '',
-        instagram: result[2]?.trim() || '',
-        facebook: result[3]?.trim() || '',
-        linkedin: result[4]?.trim() || '',
+        twitter: cleanSection(result[1] || ''),
+        instagram: cleanSection(result[2] || ''),
+        facebook: cleanSection(result[3] || ''),
+        linkedin: cleanSection(result[4] || ''),
       };
 
   // Update user daily generations
@@ -73,10 +84,7 @@ export async function POST(req: NextRequest) {
   } else {
     user.dailyGenerations += 1;
   }
-
-  // Save user asynchronously without blocking the response
   user.save().catch((err: Error) => console.error('Failed to save user:', err));
 
-  // Return the response immediately
   return NextResponse.json({ text: generatedText, social: socialContent });
 }
