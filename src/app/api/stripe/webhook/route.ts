@@ -1,17 +1,15 @@
-// app/api/webhooks/stripe/route.ts (assuming App Router)
+// app/api/webhooks/stripe/route.ts
 import { Stripe } from 'stripe';
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
-import connectDB from '../../../lib/db'; // Adjust path
-import User, { IUser } from '../../../models/User'; // Adjust path
+import connectDB from '../../../lib/db';
+import User, { IUser } from '../../../models/User';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
-// Valid subscription plans
 const VALID_PLANS = ['basic', 'pro'] as const;
 type PlanType = typeof VALID_PLANS[number];
 
-// Error handling utility
 class WebhookError extends Error {
   constructor(message: string, public status: number) {
     super(message);
@@ -19,7 +17,6 @@ class WebhookError extends Error {
   }
 }
 
-// Webhook signature verification
 async function verifyWebhook(body: string, signature: string | null): Promise<Stripe.Event> {
   if (!signature) {
     throw new WebhookError('Missing Stripe signature', 400);
@@ -39,8 +36,7 @@ async function verifyWebhook(body: string, signature: string | null): Promise<St
   }
 }
 
-// Handle checkout session completion
-async function handleCheckoutSession(session: Stripe.Checkout.Session): Promise<void> {
+async function handleCheckoutSession(session: Stripe.Checkout.Session): Promise<NextResponse> {
   const { userId, chosenPlan } = session.metadata || {};
 
   if (!userId) {
@@ -60,11 +56,12 @@ async function handleCheckoutSession(session: Stripe.Checkout.Session): Promise<
 
   user.subscriptionStatus = validatedPlan;
   await user.save();
-
-  console.log(`✅ Updated user ${userId} to ${validatedPlan}`);
+  
+  // Force 200 response immediately after save
+  console.log(`✅ Updated user ${userId} to ${validatedPlan} - Forcing success`);
+  return NextResponse.json({ message: 'Received' }, { status: 200 });
 }
 
-// Main handler
 export async function POST(req: Request): Promise<NextResponse> {
   console.log('Webhook hit!');
 
@@ -88,14 +85,12 @@ export async function POST(req: Request): Promise<NextResponse> {
           metadata: session.metadata,
         }, null, 2));
 
-        await handleCheckoutSession(session);
-        break;
+        return await handleCheckoutSession(session); // Return the response directly
 
       default:
         console.log('Unhandled event type:', event.type);
+        return NextResponse.json({ message: 'Received' }, { status: 200 });
     }
-
-    return NextResponse.json({ message: 'Received' }, { status: 200 });
   } catch (error) {
     const err = error instanceof WebhookError
       ? error
@@ -106,7 +101,6 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
 }
 
-// Configuration for raw body
 export const config = {
   api: {
     bodyParser: false,
