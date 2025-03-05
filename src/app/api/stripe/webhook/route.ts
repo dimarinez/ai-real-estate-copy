@@ -1,11 +1,12 @@
 // app/api/webhooks/stripe/route.ts
 import { Stripe } from 'stripe';
 import { NextResponse } from 'next/server';
-import { headers } from 'next/headers';
 import connectDB from '../../../lib/db';
 import User, { IUser } from '../../../models/User';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+    apiVersion: "2025-02-24.acacia",
+});
 
 const VALID_PLANS = ['basic', 'pro'] as const;
 type PlanType = typeof VALID_PLANS[number];
@@ -66,9 +67,8 @@ export async function POST(req: Request): Promise<NextResponse> {
   console.log('Webhook hit!');
 
   try {
+    const stripeSignature = req.headers.get('stripe-signature') || '';
     const body = await req.text();
-    const headerList = await headers();
-    const stripeSignature = headerList.get('stripe-signature');
 
     console.log('Stripe-Signature:', stripeSignature || 'No signature');
     console.log('Raw body:', body.slice(0, 200));
