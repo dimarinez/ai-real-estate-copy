@@ -26,18 +26,21 @@ export async function POST(req: NextRequest) {
   }
 
   const model = user.subscriptionStatus === 'pro' ? 'gpt-4' : 'gpt-3.5-turbo';
-  const { propertyType, location, features, tone, language } = await req.json();
+  const { propertyType, location, features, tone, language, maxWords } = await req.json();
+
+  // Validate maxWords (optional field, default to reasonable limits if not provided)
+  const maxWordsLimit = maxWords && Number.isInteger(maxWords) && maxWords > 0 ? maxWords : (user.subscriptionStatus === 'free' ? 100 : 200);
 
   const combinedPrompt = `
-    First, write a ${tone} real estate listing in ${language} for a ${propertyType} in ${location}. Features: ${features.join(', ')}.
+    First, write a ${tone} real estate listing in ${language} for a ${propertyType} in ${location}. Features: ${features.join(', ')}. Limit the listing to ${maxWordsLimit} words.
     ${user.subscriptionStatus !== 'free' ? `
     Then, generate the following, each separated by "---":
-    - A short and catchy tweet
-    - An Instagram caption with hashtags
-    - A Facebook post
-    - A LinkedIn post in a professional tone
+    - A short and catchy tweet (max 25 words)
+    - An Instagram caption with hashtags (max 30 words)
+    - A Facebook post (max 50 words)
+    - A LinkedIn post in a professional tone (max 75 words)
     Do not include section headers like "**Tweet:**" or "**Real Estate Listing:**" in the output. Use only "---" to separate sections.
-    Ensure there is no leading "---" at the start of the response.
+    Ensure there is no leading "---" at the start of the response and all requested sections are included.
     ` : ''}
   `;
 
@@ -59,11 +62,15 @@ export async function POST(req: NextRequest) {
   // Log raw content for debugging
   console.log('Raw OpenAI content:', content);
 
-  // Split and filter out empty sections or leading separators
+  // Split and filter out empty sections
   const result = content.split('---').filter((section) => section.trim() !== '');
   console.log('Filtered split result:', result);
 
-  // Extract listing and social content, removing unwanted headers
+  // Ensure we have enough sections
+  if (user.subscriptionStatus !== 'free' && result.length < 5) {
+    console.error('Incomplete OpenAI response: missing sections', { expected: 5, received: result.length });
+  }
+
   const cleanSection = (text: string) =>
     text.replace(/\*\*Real Estate Listing:\*\*|\*\*Tweet:\*\*|\*\*Instagram Caption:\*\*|\*\*Facebook Post:\*\*|\*\*LinkedIn Post:\*\*/g, '').trim();
 
@@ -74,8 +81,13 @@ export async function POST(req: NextRequest) {
         twitter: cleanSection(result[1] || ''),
         instagram: cleanSection(result[2] || ''),
         facebook: cleanSection(result[3] || ''),
-        linkedin: cleanSection(result[4] || ''),
+        linkedin: cleanSection(result[4] || ''), // Default to empty string if missing
       };
+
+  // Log if LinkedIn is missing
+  if (user.subscriptionStatus !== 'free' && !socialContent.linkedin) {
+    console.warn('LinkedIn post missing in response');
+  }
 
   // Update user daily generations
   if (!user.lastFreeGeneration || user.lastFreeGeneration !== today) {
