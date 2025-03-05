@@ -80,3 +80,7 @@ export async function POST(req: NextRequest) {
   // Return the response immediately
   return NextResponse.json({ text: generatedText, social: socialContent });
 }
+
+export const config = {
+    maxDuration: 60, // For Vercel Pro
+};
