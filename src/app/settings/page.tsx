@@ -81,44 +81,41 @@ export default function Settings() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4">
-      <h1 className="text-2xl font-bold mb-6">Account Settings</h1>
-
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <div className="border p-6 rounded-lg shadow-md max-w-md w-full">
-          <p className="mb-2"><strong>Email:</strong> {email}</p>
-          <p className="mb-4"><strong>Subscription:</strong> {subscription.toUpperCase()}</p>
-
-          {(subscription === 'free' || subscription === 'basic') && (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+      <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-lg">
+        <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Account Settings</h1>
+        {loading ? (
+          <p className="text-center text-gray-600">Loading...</p>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-gray-700"><strong>Email:</strong> {email}</p>
+            <p className="text-gray-700"><strong>Plan:</strong> {subscription.toUpperCase()}</p>
+            {(subscription === 'free' || subscription === 'basic') && (
+              <button
+                onClick={handleSubscriptionUpgrade}
+                className="w-full bg-green-500 hover:bg-green-600 text-white p-3 rounded-lg font-semibold transition-colors"
+              >
+                Upgrade to Pro
+              </button>
+            )}
+            {subscription !== 'free' && (
+              <button
+                onClick={handleSubscriptionCancel}
+                className="w-full bg-red-500 hover:bg-red-600 text-white p-3 rounded-lg font-semibold transition-colors"
+              >
+                Cancel Subscription
+              </button>
+            )}
             <button
-              onClick={handleSubscriptionUpgrade}
-              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 mb-4 w-full"
+              onClick={handleDeleteAccount}
+              className="w-full bg-gray-500 hover:bg-gray-600 text-white p-3 rounded-lg font-semibold transition-colors"
             >
-              Upgrade to Pro
+              Delete Account
             </button>
-          )}
-
-          {subscription !== 'free' && (
-            <button
-              onClick={handleSubscriptionCancel}
-              className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 mb-4 w-full"
-            >
-              Cancel Subscription
-            </button>
-          )}
-
-          <button
-            onClick={handleDeleteAccount}
-            className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 w-full"
-          >
-            Delete Account
-          </button>
-        </div>
-      )}
-
-      {message && <p className="mt-4 text-red-500">{message}</p>}
+          </div>
+        )}
+        {message && <p className="mt-4 text-center text-red-500">{message}</p>}
+      </div>
     </div>
   );
 }

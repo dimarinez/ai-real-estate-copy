@@ -46,69 +46,60 @@ export default function Pricing() {
     }
   };
 
-  // Show loading state while subscription status is being fetched
-  if (subscription === null) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <p>Loading...</p>
-      </div>
-    );
-  }
+  if (status === 'loading' || subscription === null) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
-  // If user is on Pro, show a message instead of plans
   if (subscription === 'pro') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <h1 className="text-2xl font-bold mb-4">You’re Already on the Pro Plan!</h1>
-        <p className="text-gray-600">Enjoy all the premium features of your subscription.</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-gray-800 mb-4">You’re on the Pro Plan!</h1>
+          <p className="text-gray-600">Enjoy unlimited generations and premium features.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
-      <h1 className="text-2xl font-bold mb-4">Choose a Plan</h1>
-      {loading && <p className="mb-4">Loading...</p>}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
-        {subscription === 'free' && (
-          <div className="border p-6 text-center rounded shadow">
-            <h2 className="text-xl font-bold">Basic Plan</h2>
-            <p className="text-gray-600">$10 / month</p>
-            <ul className="text-gray-500 mt-2">
-              <li>10 generations/day</li>
-              <li>Custom tones & languages</li>
-              <li>Save listings in dashboard</li>
-            </ul>
-            <button
-              onClick={() => handleCheckout('basic')}
-              disabled={loading}
-              className="bg-blue-500 text-white px-4 py-2 mt-4 rounded hover:bg-blue-600 disabled:bg-gray-400"
-            >
-              Subscribe
-            </button>
-          </div>
-        )}
-
-        {(subscription === 'free' || subscription === 'basic') && (
-          <div className="border p-6 text-center rounded shadow">
-            <h2 className="text-xl font-bold">Pro Plan</h2>
-            <p className="text-gray-600">$30 / month</p>
-            <ul className="text-gray-500 mt-2">
-              <li>Unlimited generations</li>
-              <li>Custom tones & languages</li>
-              <li>Social media content (Facebook, X, Instagram & LinkedIn)</li>
-              <li>Advanced AI model</li>
-            </ul>
-            <button
-              onClick={() => handleCheckout('pro')}
-              disabled={loading}
-              className="bg-green-500 text-white px-4 py-2 mt-4 rounded hover:bg-green-600 disabled:bg-gray-400"
-            >
-              Subscribe
-            </button>
-          </div>
-        )}
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+      <div className="max-w-4xl w-full">
+        <h1 className="text-3xl font-bold text-gray-800 mb-8 text-center">Choose Your Plan</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {subscription === 'free' && (
+            <div className="p-6 bg-white rounded-lg shadow-md border border-gray-200">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-2">Basic</h2>
+              <p className="text-3xl font-bold text-blue-600 mb-4">$10<span className="text-sm text-gray-500">/mo</span></p>
+              <ul className="text-gray-600 mb-6 space-y-2">
+                <li>10 Generations/Day</li>
+                <li>Custom Tones & Languages</li>
+              </ul>
+              <button
+                onClick={() => handleCheckout('basic')}
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg font-semibold transition-colors disabled:bg-gray-400"
+              >
+                {loading ? 'Loading...' : 'Subscribe'}
+              </button>
+            </div>
+          )}
+          {(subscription === 'free' || subscription === 'basic') && (
+            <div className="p-6 bg-white rounded-lg shadow-md border border-gray-200">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-2">Pro</h2>
+              <p className="text-3xl font-bold text-green-600 mb-4">$30<span className="text-sm text-gray-500">/mo</span></p>
+              <ul className="text-gray-600 mb-6 space-y-2">
+                <li>Unlimited Generations</li>
+                <li>Custom Tones & Languages</li>
+                <li>Social Media Content</li>
+              </ul>
+              <button
+                onClick={() => handleCheckout('pro')}
+                disabled={loading}
+                className="w-full bg-green-500 hover:bg-green-600 text-white p-3 rounded-lg font-semibold transition-colors disabled:bg-gray-400"
+              >
+                {loading ? 'Loading...' : 'Subscribe'}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
