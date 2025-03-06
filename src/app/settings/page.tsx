@@ -1,11 +1,12 @@
-// src/app/Settings.tsx (or wherever your component lives)
+// src/app/Settings.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
+import { useSubscription } from '../lib/useSubscription';
 
 export default function Settings() {
-  const [subscription, setSubscription] = useState('free');
+  const { subscription, updateSubscription } = useSubscription();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
@@ -17,7 +18,6 @@ export default function Settings() {
       if (data.error) {
         setMessage(data.error);
       } else {
-        setSubscription(data.subscriptionStatus || 'free');
         setEmail(data.email || '');
       }
       setLoading(false);
@@ -34,7 +34,7 @@ export default function Settings() {
     });
     const data = await res.json();
     if (data.url) {
-      window.location.href = data.url; // Redirect to Stripe checkout
+      window.location.href = data.url;
     } else {
       setMessage(data.error || 'Failed to initiate upgrade');
     }
@@ -53,7 +53,7 @@ export default function Settings() {
     const data = await res.json();
     if (data.message) {
       setMessage(data.message);
-      setSubscription('free');
+      updateSubscription('free'); // Update shared subscription state
     } else {
       setMessage(data.error || 'Failed to cancel subscription');
     }
@@ -84,7 +84,7 @@ export default function Settings() {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-lg">
         <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Account Settings</h1>
-        {loading ? (
+        {loading || subscription === null ? (
           <p className="text-center text-gray-600">Loading...</p>
         ) : (
           <div className="space-y-4">

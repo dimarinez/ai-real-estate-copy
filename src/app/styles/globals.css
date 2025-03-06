@@ -5,6 +5,12 @@
   --font-mono: var(--font-geist-mono);
 }
 
+.home-hero {
+  background-image: url(https://images.unsplash.com/photo-1600585154340-be6161a56a0c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80);
+  background-size: cover;
+  background-position: bottom;
+}
+
 :root {
   --font-sans: var(--font-inter);
 }
