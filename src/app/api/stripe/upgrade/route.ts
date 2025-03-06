@@ -23,19 +23,21 @@ export async function POST() {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    try {
-        // Create Stripe Checkout session with user email
-        const stripeSession = await stripe.checkout.sessions.create({
-            payment_method_types: ['card'],
-            mode: 'subscription',
-            line_items: [{ price: process.env.STRIPE_PRICE_ID_PRO, quantity: 1 }],
-            success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/settings?success=true`,
-            cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/settings?canceled=true`,
-            customer_email: user.email,
-            metadata: { userId: user._id.toString() },
+    try {      
+        const checkoutSession = await stripe.checkout.sessions.create({
+          payment_method_types: ["card"],
+          mode: "subscription",
+          line_items: [{ price: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PRO, quantity: 1 }],
+          success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/pricing`,
+          customer_email: user.email,
+          metadata: {
+            userId: user._id.toString(),
+            chosenPlan: 'pro',
+          },
         });
 
-        return NextResponse.json({ url: stripeSession.url });
+        return NextResponse.json({ url: checkoutSession.url });
     } catch (error) {
         console.error('Stripe Upgrade Error:', error);
         return NextResponse.json({ error: 'Could not create upgrade session' }, { status: 500 });

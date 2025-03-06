@@ -53,9 +53,10 @@ async function handleCheckoutSession(session: Stripe.Checkout.Session): Promise<
     console.error(`User not found for ID: ${userId}`);
     throw new WebhookError(`User ${userId} not found`, 404);
   }
-
   user.subscriptionStatus = validatedPlan;
+  user.dailyGenerations = 0;
   await user.save();
+
   console.log(`Updated user ${userId} to plan ${validatedPlan}`);
   return NextResponse.json({ received: true }, { status: 200 });
 }

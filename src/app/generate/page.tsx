@@ -104,7 +104,7 @@ export default function GenerateListing() {
       />
       <input
         type="number"
-        placeholder="Max Words for Listing (e.g., 50)"
+        placeholder={`Custom Word Limit (${subscription === 'pro' ? 'Default 200' : 'Default 100'})`}
         className="border p-2 mb-4 w-96 rounded"
         value={maxWords}
         onChange={(e) => setMaxWords(e.target.value)}
@@ -152,7 +152,7 @@ export default function GenerateListing() {
         </div>
       )}
 
-      {subscription !== 'free' && (socialContent.twitter || socialContent.linkedin) && (
+      {subscription === 'pro' && (socialContent.twitter || socialContent.linkedin) && (
         <div className="mt-6 p-4 border rounded bg-gray-100 max-w-lg w-full">
           <h2 className="text-lg font-bold">Social Media Content:</h2>
           {socialContent.twitter && (

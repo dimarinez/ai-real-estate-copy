@@ -32,6 +32,9 @@ export default function RootLayout({
         <SessionProviderWrapper>
           <Navbar />
           {children}
+          <footer className="p-4 text-center text-gray-500">
+          © {new Date().getFullYear()} AI Real Estate Copy. All rights reserved.
+          </footer>
         </SessionProviderWrapper>
       </body>
     </html>

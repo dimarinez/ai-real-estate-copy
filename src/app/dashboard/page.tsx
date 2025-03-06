@@ -62,24 +62,6 @@ export default function Dashboard() {
             <p className="text-gray-500 text-sm">
               Saved on {new Date(listing.date).toLocaleDateString()}
             </p>
-
-            {subscription !== 'free' && listing.social && (
-              <div className="mt-4">
-                <h3 className="text-md font-bold">Social Media Posts:</h3>
-                <p>
-                  <strong>Twitter:</strong> {listing.social.twitter}
-                </p>
-                <p>
-                  <strong>Instagram:</strong> {listing.social.instagram}
-                </p>
-                <p>
-                  <strong>Facebook:</strong> {listing.social.facebook}
-                </p>
-                <p>
-                  <strong>LinkedIn:</strong> {listing.social.linkedin}
-                </p>
-              </div>
-            )}
           </div>
         ))}
       </div>
