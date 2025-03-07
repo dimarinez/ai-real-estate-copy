@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/pricing`,
       customer_email: user.email,
+      allow_promotion_codes: true,
       metadata: {
         userId: user._id.toString(),
         chosenPlan: plan,
