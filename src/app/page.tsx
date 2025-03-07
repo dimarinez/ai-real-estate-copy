@@ -9,23 +9,23 @@ export default function Home() {
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 absolute inset-0 opacity-75"></div>
         <div className="max-w-5xl mx-auto text-center relative z-1">
           <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
-            Elevate Your Listings with AI-Powered Precision
+            AI-Powered Real Estate Copy, Instantly
           </h1>
           <p className="text-xl md:text-2xl text-gray-100 mb-8 max-w-3xl mx-auto">
-            Create high-quality real estate copy and social media posts designed for maximum engagement—effortlessly.
+            Generate listings and social posts that sell—start free today!
           </p>
           <div className="flex flex-col md:flex-row gap-4 justify-center">
             <Link
-              href="/generate"
+              href="/auth/signup"
               className="bg-amber-500 hover:bg-amber-600 text-white px-8 py-4 rounded-lg font-semibold text-lg shadow-md hover:shadow-lg transition-all duration-200"
             >
-              Generate Copy Now
+              Start Free Now
             </Link>
             <Link
               href="/pricing"
-              className="bg-white hover:bg-gray-100 text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg shadow-md hover:shadow-lg transition-all duration-200"
+              className="bg-white hover:bg-gray-100 text-[#4861C3] px-8 py-4 rounded-lg font-semibold text-lg shadow-md hover:shadow-lg transition-all duration-200"
             >
-              View Pricing
+              See Plans
             </Link>
           </div>
         </div>
