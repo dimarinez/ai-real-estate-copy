@@ -13,6 +13,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "AI Real Estate Copy - Generate Listings & Posts",
   description: "Create AI-powered real estate listings and social media posts with precision and engagement effortlessly.",
+  icons: {
+    icon: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
