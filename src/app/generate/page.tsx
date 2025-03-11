@@ -151,7 +151,10 @@ export default function GenerateListing() {
       setMessage(`You’ve reached your limit of ${maxSaved} saved listings. Upgrade or delete existing listings.`);
       return;
     }
-
+  
+    const trackableId = Date.now().toString(); // e.g., "1741731726060"
+    const trackableUrl = subscription === 'pro' ? `/api/track/${trackableId}` : undefined;
+  
     try {
       const res = await fetch('/api/listings/save', {
         method: 'POST',
@@ -161,20 +164,14 @@ export default function GenerateListing() {
           description: generatedText,
           location,
           social: subscription !== 'free' ? socialContent : undefined,
-          redirectUrl: subscription === 'pro' ? redirectUrl : undefined,
+          analytics: subscription === 'pro' ? { trackableUrl, redirectUrl, views: 0 } : undefined,
         }),
       });
-
+  
       const data = await res.json();
       if (res.ok) {
         setSavedListingsCount((prev) => prev + 1);
-        setMessage(
-          subscription === 'free'
-            ? 'Listing saved successfully! View it in your dashboard.'
-            : subscription === 'pro'
-            ? 'Listing and social media saved successfully! Share with the link to track views.'
-            : 'Listing and social media saved successfully! View them in your dashboard.'
-        );
+        setMessage(`Listing saved successfully! Track it at ${trackableUrl || 'your dashboard'}.`);
       } else {
         setMessage(data.error || 'Failed to save listing');
       }

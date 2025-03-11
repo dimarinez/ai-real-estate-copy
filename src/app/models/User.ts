@@ -9,10 +9,22 @@ export interface IUser extends Document {
     lastFreeGeneration?: string;
     dailyGenerations: number;
     savedListings: {
-        title: string;
-        description: string;
-        date: Date;
-        social?: { twitter: string; instagram: string; facebook: string; linkedin: string };
+      title: string;
+      description: string;
+      location?: string; // also in the schema
+      date: Date;
+      social?: {
+        twitter?: string;
+        instagram?: string;
+        facebook?: string;
+        linkedin?: string;
+      };
+      analytics?: {
+        views: number;
+        trackableUrl?: string;
+        redirectUrl?: string;
+        lastUpdated?: Date;
+      };
     }[];
 }
 

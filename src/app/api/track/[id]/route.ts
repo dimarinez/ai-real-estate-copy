@@ -1,69 +1,70 @@
-// src/app/api/track/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../../../lib/auth';
 import connectDB from '../../../lib/db';
 import User from '../../../models/User';
 
-// Define the shape of a Listing
 interface Listing {
-  title: string;
-  description: string;
-  location?: string;
-  date: string;
-  social?: {
-    twitter: string;
-    instagram: string;
-    facebook: string;
-    linkedin: string;
-  };
-  analytics?: {
-    views: number;
-    trackableUrl: string;
-    redirectUrl: string;
-    lastUpdated?: string | Date;
-  };
-}
+    title: string;
+    description: string;
+    location?: string;
+    date: Date;
+    social?: {
+      twitter?: string;
+      instagram?: string;
+      facebook?: string;
+      linkedin?: string;
+    };
+    analytics?: {
+      views: number;
+      trackableUrl?: string;
+      redirectUrl?: string;
+      lastUpdated?: Date;
+    };
+  }
+  
 
-// Define the User type (Mongoose document)
-interface UserDoc {
-  email: string;
-  subscriptionStatus: string;
-  savedListings: Listing[];
-  markModified: (path: string) => void;
-  save: () => Promise<void>;
-}
-
-// Use a simpler, Next.js-compatible signature
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ id: string }> }
-  ) {
+  ) { 
   try {
-    await connectDB();
-    const session = await getServerSession(authOptions);
     const { id } = await params;
+    await connectDB();
 
-    if (!session?.user?.email) {
+    // find a user that has a listing with trackableUrl that ends in your {id}
+    const urlToMatch = `https://airealestatecopy.com/api/track/${id}`;
+    const user = await User.findOne({
+      'savedListings.analytics.trackableUrl': urlToMatch
+    });
+
+    if (!user) {
+      // no user has a listing with that trackableUrl
       return NextResponse.redirect('https://airealestatecopy.com/contact-agent');
     }
 
-    const user = (await User.findOne({ email: session.user.email })) as UserDoc | null;
-    if (!user || user.subscriptionStatus !== 'pro') {
+    // find the correct listing
+    const listing = user.savedListings.find(
+      (l: Listing) => l.analytics?.trackableUrl === urlToMatch
+    );
+    if (!listing) {
       return NextResponse.redirect('https://airealestatecopy.com/contact-agent');
     }
 
-    const listing = user.savedListings.find((l: Listing) => l.analytics?.trackableUrl?.includes(id));
-    if (listing) {
-      listing.analytics = listing.analytics || { views: 0, trackableUrl: id, redirectUrl: '' };
-      listing.analytics.views = (listing.analytics.views || 0) + 1;
-      listing.analytics.lastUpdated = new Date();
-      user.markModified('savedListings');
-      await user.save();
-      return NextResponse.redirect(listing.analytics.redirectUrl);
+    // increment views
+    if (!listing.analytics) {
+      listing.analytics = {
+        views: 0,
+        trackableUrl: urlToMatch,
+        redirectUrl: 'https://airealestatecopy.com/contact-agent',
+      };
     }
+    listing.analytics.views += 1;
+    listing.analytics.lastUpdated = new Date();
 
-    return NextResponse.redirect('https://airealestatecopy.com/contact-agent');
+    user.markModified('savedListings');
+    await user.save();
+
+    // Now send the visitor to the real URL
+    return NextResponse.redirect(listing.analytics.redirectUrl);
   } catch (error) {
     console.error('Error tracking view:', error);
     return NextResponse.redirect('https://airealestatecopy.com/contact-agent');
