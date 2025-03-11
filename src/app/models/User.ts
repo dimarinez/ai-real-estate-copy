@@ -1,3 +1,4 @@
+// src/app/models/User.ts
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IUser extends Document {
@@ -7,7 +8,12 @@ export interface IUser extends Document {
     subscriptionStatus: string;
     lastFreeGeneration?: string;
     dailyGenerations: number;
-    savedListings: { title: string; description: string; date: Date }[];
+    savedListings: {
+        title: string;
+        description: string;
+        date: Date;
+        social?: { twitter: string; instagram: string; facebook: string; linkedin: string };
+    }[];
 }
 
 const UserSchema = new Schema<IUser>({
@@ -21,7 +27,20 @@ const UserSchema = new Schema<IUser>({
         {
             title: { type: String, required: true },
             description: { type: String, required: true },
+            location: String,
             date: { type: Date, default: Date.now },
+            social: {
+                twitter: { type: String },
+                instagram: { type: String },
+                facebook: { type: String },
+                linkedin: { type: String },
+            },
+            analytics: {
+                views: { type: Number, default: 0 },
+                trackableUrl: String,
+                redirectUrl: String,
+                lastUpdated: Date,
+            },
         },
     ],
 });

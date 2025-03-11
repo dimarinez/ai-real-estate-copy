@@ -6,112 +6,113 @@ import OpenAI from 'openai';
 import connectDB from '../../lib/db';
 import User from '../../models/User';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const MAX_PHOTOS = 10;
 
 export async function POST(req: NextRequest) {
-  // Get the session
-  const session = await getServerSession(authOptions);
-
-  // Ensure user is authenticated
-  if (!session || !session.user?.email) {
-    return NextResponse.json({ error: 'Not authenticated. Please sign in to generate a listing.' }, { status: 401 });
+  console.log('API called: /api/generate');
+  if (!process.env.OPENAI_API_KEY) {
+    console.log('OpenAI API key is missing');
+    return NextResponse.json({ error: 'OpenAI API key is not configured.' }, { status: 500 });
   }
 
-  // Connect to the database
-  await connectDB();
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user?.email) {
+    return NextResponse.json({ error: 'Not authenticated.' }, { status: 401 });
+  }
 
-  // Find the user by email
+  await connectDB();
   const user = await User.findOne({ email: session.user.email });
   if (!user) {
-    return NextResponse.json({ error: 'User not found. Please sign up or check your account.' }, { status: 404 });
+    return NextResponse.json({ error: 'User not found.' }, { status: 404 });
   }
 
-  // Check daily generation limit
   const today = new Date().toISOString().split('T')[0];
-  const dailyLimit = user.subscriptionStatus === 'pro' ? Infinity : user.subscriptionStatus === 'basic' ? 10 : 1;
+  const dailyLimit = user.subscriptionStatus === 'pro' ? 25 : user.subscriptionStatus === 'basic' ? 5 : 1;
   if (user.dailyGenerations >= dailyLimit) {
-    return NextResponse.json({ error: 'Daily limit reached. Upgrade for more generations.' }, { status: 403 });
+    console.log('Daily limit reached');
+    return NextResponse.json({ error: 'Daily limit reached.' }, { status: 403 });
   }
 
-  // Determine OpenAI model based on subscription
-  const model = user.subscriptionStatus === 'pro' ? 'gpt-4' : 'gpt-3.5-turbo';
-
-  // Parse request body
-  const { propertyType, location, features, tone, language, maxWords } = await req.json();
-
-  // Validate maxWords (optional field, default to reasonable limits if not provided)
-  const maxWordsLimit = maxWords && Number.isInteger(maxWords) && maxWords > 0 ? maxWords : (user.subscriptionStatus === 'free' ? 100 : 200);
-
-  // Construct the OpenAI prompt
-  const combinedPrompt = `
-    First, write a ${tone} real estate listing in ${language} for a ${propertyType} in ${location}. Features: ${features.join(', ')}. Limit the listing to ${maxWordsLimit} words.
-    ${user.subscriptionStatus === 'pro' ? `
-    Then, generate the following, each separated by "---":
-    - A tweet (max 25 words, 280 chars, short and catchy with 1-2 hashtags and a CTA, emojis optional)
-    - An Instagram caption (max 30 words, 150 chars, conversational with 3-5 hashtags at the end, emojis encouraged)
-    - A Facebook post (max 50 words, 250 chars, friendly and informative with a CTA, minimal hashtags, emojis optional)
-    - A LinkedIn post (max 75 words, 300 chars, professional tone with a CTA, 1-2 hashtags if relevant, no emojis)
-    Do not include section headers like "**Tweet:**" or "**Real Estate Listing:**". Use only "---" to separate sections.
-    Ensure there is no leading "---" and all four social media sections are included for non-free users.
-    ` : ''}
-  `;
-
-  // Generate content with OpenAI
-  const response = await openai.chat.completions.create({
-    model,
-    messages: [
-      { role: 'system', content: 'You are a real estate copywriting expert.' },
-      { role: 'user', content: combinedPrompt },
-    ],
-    temperature: 0.7,
-    max_tokens: user.subscriptionStatus === 'free' ? 300 : 600,
-  });
-
-  const content = response.choices[0]?.message.content;
-  if (!content) {
-    return NextResponse.json({ error: 'Failed to generate content' }, { status: 500 });
+  const formData = await req.formData();
+  const photoCount = parseInt(formData.get('photoCount') as string, 10);
+  if (!photoCount || photoCount < 1) {
+    console.log('No photos provided');
+    return NextResponse.json({ error: 'At least one photo is required.' }, { status: 400 });
+  }
+  if (photoCount > MAX_PHOTOS) {
+    console.log(`Photo count (${photoCount}) exceeds maximum allowed (${MAX_PHOTOS})`);
+    return NextResponse.json({ error: `Maximum ${MAX_PHOTOS} photos allowed per request.` }, { status: 400 });
   }
 
-  // Log raw content for debugging
-  console.log('Raw OpenAI content:', content);
-
-  // Split and filter out empty sections
-  const result = content.split('---').filter((section) => section.trim() !== '');
-  console.log('Filtered split result:', result);
-
-  // Ensure all sections are present for non-free users
-  if (user.subscriptionStatus !== 'free' && result.length < 5) {
-    console.error('Incomplete OpenAI response: missing sections', { expected: 5, received: result.length });
+  const photos: File[] = [];
+  for (let i = 0; i < photoCount; i++) {
+    const photo = formData.get(`photo${i}`) as File;
+    if (photo) photos.push(photo);
   }
 
-  // Clean up sections by removing any lingering headers
-  const cleanSection = (text: string) =>
-    text.replace(/\*\*Real Estate Listing:\*\*|\*\*Tweet:\*\*|\*\*Instagram Caption:\*\*|\*\*Facebook Post:\*\*|\*\*LinkedIn Post:\*\*/g, '').trim();
+  const tone = formData.get('tone') as string || 'default';
+  const language = formData.get('language') as string || 'English';
+  const maxWords = formData.get('maxWords') ? parseInt(formData.get('maxWords') as string, 10) : (user.subscriptionStatus === 'free' ? 100 : 200);
 
-  const generatedText = cleanSection(result[0] || '');
-  const socialContent = user.subscriptionStatus == 'pro'
-    ?  {
-        twitter: cleanSection(result[1] || ''),
-        instagram: cleanSection(result[2] || ''),
-        facebook: cleanSection(result[3] || ''),
-        linkedin: cleanSection(result[4] || `Professional listing: ${propertyType} in ${location} with ${features.join(', ')}. Contact us.`),
-      }
-    : {};
+  console.log(`Processing ${photos.length} photos`);
+  const base64Images = await Promise.all(
+    photos.map(async (photo) => {
+      const buffer = Buffer.from(await photo.arrayBuffer());
+      return `data:image/jpeg;base64,${buffer.toString('base64')}`;
+    })
+  );
 
-  if (user.subscriptionStatus !== 'free' && !socialContent.linkedin) {
-    console.warn('LinkedIn post missing in response');
+  try {
+    console.log('Starting GPT-4o bulk analysis');
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `Analyze these ${photos.length} interior photos and generate a single ${tone} real estate listing in ${language}, max ${maxWords} words, focusing only on interior features (exclude exterior details like yards or facades). Combine all pertinent interior details into a captivating description. Then, if user is not free-tier, generate social media posts: Twitter (25 words max), Instagram (30 words max), Facebook (50 words max), LinkedIn (75 words max). Separate each section with "---" and do not include platform names or headers like "## Twitter"—just the raw text.`,
+            },
+            ...base64Images.map((base64) => ({
+              type: 'image_url' as const,
+              image_url: { url: base64 },
+            })),
+          ],
+        },
+      ],
+      max_tokens: 400,
+      temperature: 0.7,
+    });
+
+    const gptOutput = response.choices[0]?.message.content || '';
+    console.log('GPT-4o raw output:', gptOutput);
+
+    const sections = gptOutput.split('---').map(s => s.trim());
+    const listing = sections[0] || 'A beautifully designed interior with stunning features.';
+    const socialParts = sections.slice(1);
+
+    const cleanSocialParts = socialParts.map(part => part.trim());
+    const socialContent = user.subscriptionStatus !== 'free' ? {
+      twitter: cleanSocialParts[0] || 'Step inside this stunning interior! Book a tour! #RealEstate',
+      instagram: cleanSocialParts[1] || 'Elegant interiors await! Ready to move in? #HomeGoals',
+      facebook: cleanSocialParts[2] || 'Discover elegant interiors with top-tier features. Contact us!',
+      linkedin: cleanSocialParts[3] || 'New listing: Elegant interiors with modern amenities. Reach out! #RealEstate',
+    } : {};
+
+    // Update daily generations (no saving here)
+    if (!user.lastFreeGeneration || user.lastFreeGeneration !== today) {
+      user.lastFreeGeneration = today;
+      user.dailyGenerations = 1;
+    } else {
+      user.dailyGenerations += 1;
+    }
+    await user.save();
+
+    return NextResponse.json({ text: listing, social: socialContent });
+  } catch (error) {
+    console.error('Error processing photos with GPT-4o:', error);
+    return NextResponse.json({ error: 'Failed to process photos.' }, { status: 500 });
   }
-
-  // Update user daily generations
-  if (!user.lastFreeGeneration || user.lastFreeGeneration !== today) {
-    user.lastFreeGeneration = today;
-    user.dailyGenerations = 1;
-  } else {
-    user.dailyGenerations += 1;
-  }
-  await user.save().catch((err: Error) => console.error('Failed to save user:', err));
-
-  return NextResponse.json({ text: generatedText, social: socialContent });
 }
