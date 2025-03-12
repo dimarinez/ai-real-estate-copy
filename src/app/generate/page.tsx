@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { FaCopy, FaSave, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
 import { Autocomplete, useLoadScript, Libraries } from '@react-google-maps/api';
 import imageCompression from 'browser-image-compression';
-import { useDropzone } from 'react-dropzone'; // Import react-dropzone
+import { useDropzone } from 'react-dropzone';
 
 type Heic2Any = (options: {
   blob: Blob;
@@ -36,7 +36,6 @@ export default function GenerateListing() {
   const [photos, setPhotos] = useState<File[]>([]);
   const [tone, setTone] = useState('default');
   const [language, setLanguage] = useState('English');
-  const [maxWords, setMaxWords] = useState('');
   const [location, setLocation] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
@@ -86,9 +85,8 @@ export default function GenerateListing() {
     }
 
     const now = Date.now();
-    const maxAgeSeconds = 30; // Files must be at least 30 seconds old
+    const maxAgeSeconds = 30;
 
-    // Filter out files that seem freshly taken (camera photos)
     const libraryFiles = acceptedFiles.filter((file) => {
       const ageInSeconds = (now - file.lastModified) / 1000;
       if (ageInSeconds < maxAgeSeconds) {
@@ -167,11 +165,10 @@ export default function GenerateListing() {
     }
   };
 
-  // Initialize react-dropzone
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: handleFileChange,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.heic'], // Restrict to image types
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.heic'],
     },
     multiple: true,
     maxFiles: 10,
@@ -220,13 +217,6 @@ export default function GenerateListing() {
 
       setLoadingMessage('Generating content…');
 
-      const maxWordsValue = maxWords ? parseInt(maxWords, 10) : undefined;
-      if (maxWordsValue && (isNaN(maxWordsValue) || maxWordsValue <= 0)) {
-        setMessage('Max words must be a positive number');
-        setLoading(false);
-        return;
-      }
-
       const generateRes = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -234,7 +224,6 @@ export default function GenerateListing() {
           imageUrls,
           tone,
           language,
-          maxWords: maxWordsValue,
         }),
       });
 
@@ -314,7 +303,8 @@ export default function GenerateListing() {
       message.includes('number') ||
       message.includes('process') ||
       message.includes('save listing') ||
-      message.includes('generate content')
+      message.includes('generate content') ||
+      message.includes('camera shots')
     ) {
       return 'bg-red-50 text-red-700 border-red-200';
     } else {
@@ -322,7 +312,6 @@ export default function GenerateListing() {
     }
   };
 
-  // Full-page loader until Google Maps and user data are ready
   if (!isLoaded || subscription === null) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -349,8 +338,35 @@ export default function GenerateListing() {
             </div>
           </div>
         )}
+        {message && (
+          <div className={`mb-6 p-4 rounded-lg border flex items-center gap-2 animate-fade-in ${getMessageStyles()}`}>
+            {message.includes('successfully') ? (
+              <FaCheckCircle className="text-green-600" />
+            ) : message.includes('upload') ||
+              message.includes('number') ||
+              message.includes('process') ||
+              message.includes('save listing') ||
+              message.includes('generate content') ||
+              message.includes('camera shots') ? (
+              <FaExclamationCircle className="text-red-600" />
+            ) : (
+              <FaCheckCircle className="text-blue-600" />
+            )}
+            <p className="flex-1">{message}</p>
+            {message.includes('limit') && (
+              <a href="/pricing" className="text-blue-600 hover:underline">
+                Upgrade Now
+              </a>
+            )}
+            {message.includes('saved') && (
+              <a href="/dashboard" className="text-blue-600 hover:underline">
+                Go to Dashboard
+              </a>
+            )}
+          </div>
+        )}
         <div className="space-y-6">
-        <div className="relative">
+          <div className="relative">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Property Photos (Max 10, Select from Library)
             </label>
@@ -438,42 +454,6 @@ export default function GenerateListing() {
             </Autocomplete>
           </div>
 
-          <div className="relative">
-            <label htmlFor="maxWords" className="block text-sm font-medium text-gray-700 mb-1">
-              Desired Word Count
-            </label>
-            <input
-              id="maxWords"
-              type="number"
-              inputMode="numeric" // Forces numeric keyboard on mobile
-              pattern="[0-9]*" // Validates only numbers
-              value={maxWords}
-              onChange={(e) => {
-                const value = e.target.value;
-                // Only allow numbers (including empty string for clearing)
-                if (/^\d*$/.test(value)) {
-                  setMaxWords(value);
-                }
-              }}
-              onKeyDown={(e) => {
-                // Prevent non-numeric keys (except control keys like Backspace, Arrow keys)
-                if (
-                  !/[0-9]/.test(e.key) &&
-                  e.key !== 'Backspace' &&
-                  e.key !== 'Delete' &&
-                  e.key !== 'ArrowLeft' &&
-                  e.key !== 'ArrowRight' &&
-                  e.key !== 'Tab'
-                ) {
-                  e.preventDefault();
-                }
-              }}
-              disabled={loading}
-              className="w-full p-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-200 disabled:text-gray-400 transition-all"
-              placeholder='e.g., 200 (optional)'
-            />
-          </div>
-
           <button
             onClick={handleGenerate}
             disabled={loading}
@@ -483,33 +463,6 @@ export default function GenerateListing() {
           </button>
         </div>
       </div>
-
-      {message && (
-        <div className={`mt-6 p-4 rounded-lg border flex items-center gap-2 animate-fade-in ${getMessageStyles()}`}>
-          {message.includes('successfully') ? (
-            <FaCheckCircle className="text-green-600" />
-          ) : message.includes('upload') ||
-            message.includes('number') ||
-            message.includes('process') ||
-            message.includes('save listing') ||
-            message.includes('generate content') ? (
-            <FaExclamationCircle className="text-red-600" />
-          ) : (
-            <FaCheckCircle className="text-blue-600" />
-          )}
-          <p className="flex-1">{message}</p>
-          {message.includes('limit') && (
-            <a href="/pricing" className="text-blue-600 hover:underline">
-              Upgrade Now
-            </a>
-          )}
-          {message.includes('saved') && (
-            <a href="/dashboard" className="text-blue-600 hover:underline">
-              Go to Dashboard
-            </a>
-          )}
-        </div>
-      )}
 
       {generatedText && (
         <div className="mt-8 bg-white p-8 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
