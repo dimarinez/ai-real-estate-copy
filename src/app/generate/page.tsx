@@ -4,10 +4,9 @@
 import { useState, useEffect } from 'react';
 import { FaCopy, FaSave, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
 import { Autocomplete, useLoadScript, Libraries } from '@react-google-maps/api';
-import imageCompression from 'browser-image-compression';
+import imageCompression from 'browser-image-compression'; // Import the library
 
-// Define libraries as a const array with inferred type or explicit Libraries type
-const libraries: Libraries = ['places']; // Only 'places' is needed for Autocomplete
+const libraries: Libraries = ['places'];
 
 type SocialContent = {
   twitter: string;
@@ -65,29 +64,38 @@ export default function GenerateListing() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
-      if (files.length > 10) {
-        setMessage('Maximum 10 photos allowed.');
-        setPhotos(files.slice(0, 10));
-        return;
-      }
+      const options = {
+        maxSizeMB: 0.5, // Compress to 500 KB max per image
+        maxWidthOrHeight: 1024, // Resize to max 1024px width or height
+        useWebWorker: true, // Offload to a web worker for performance
+      };
 
-      setMessage('Compressing photos...');
+      setLoading(true); // Show loading state during compression
+      setLoadingMessage('Compressing photos…');
+
       try {
         const compressedFiles = await Promise.all(
           files.map(async (file) => {
-            const options = {
-              maxSizeMB: 0.5, // Limit to 0.5 MB per photo
-              maxWidthOrHeight: 1024, // Resize to max 1024px
-            };
-            return await imageCompression(file, options);
+            console.log(`Original size of ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+            const compressedFile = await imageCompression(file, options);
+            console.log(`Compressed size of ${file.name}: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`);
+            return compressedFile;
           })
         );
-        setPhotos(compressedFiles);
-        setMessage('');
+
+        if (compressedFiles.length > 10) {
+          setMessage('Maximum 10 photos allowed.');
+          setPhotos(compressedFiles.slice(0, 10));
+        } else {
+          setPhotos(compressedFiles);
+          setMessage('');
+        }
       } catch (error) {
-        setMessage('Error compressing photos. Using originals.');
-        setPhotos(files); // Fallback to originals
+        setMessage('Error compressing images. Please try again.');
         console.error('Compression error:', error);
+      } finally {
+        setLoading(false);
+        setLoadingMessage('');
       }
     }
   };
@@ -111,39 +119,54 @@ export default function GenerateListing() {
     setCopied(null);
     setRedirectUrl('');
 
-    setLoadingMessage('Analyzing photos…');
-    setTimeout(() => setLoadingMessage('Generating content…'), 2000);
-
-    const maxWordsValue = maxWords ? parseInt(maxWords, 10) : undefined;
-    if (maxWordsValue && (isNaN(maxWordsValue) || maxWordsValue <= 0)) {
-      setMessage('Max words must be a positive number');
-      setLoading(false);
-      return;
-    }
+    setLoadingMessage('Uploading photos…');
 
     const formData = new FormData();
     photos.forEach((photo, index) => {
       formData.append(`photo${index}`, photo);
     });
     formData.append('photoCount', photos.length.toString());
-    formData.append('tone', tone);
-    formData.append('language', language);
-    formData.append('location', location);
-    if (maxWordsValue) formData.append('maxWords', maxWordsValue.toString());
 
     try {
-      const res = await fetch('/api/generate', {
+      const uploadRes = await fetch('/api/upload-photos', {
         method: 'POST',
         body: formData,
       });
+      const uploadData = await uploadRes.json();
 
-      const data = await res.json();
+      if (!uploadRes.ok) {
+        throw new Error(uploadData.error || `Upload failed with status ${uploadRes.status}`);
+      }
+
+      const imageUrls = uploadData.imageUrls;
+
+      setLoadingMessage('Generating content…');
+
+      const maxWordsValue = maxWords ? parseInt(maxWords, 10) : undefined;
+      if (maxWordsValue && (isNaN(maxWordsValue) || maxWordsValue <= 0)) {
+        setMessage('Max words must be a positive number');
+        setLoading(false);
+        return;
+      }
+
+      const generateRes = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrls,
+          tone,
+          language,
+          maxWords: maxWordsValue,
+        }),
+      });
+
+      const generateData = await generateRes.json();
       setLoading(false);
 
-      if (data.text) {
-        setGeneratedText(data.text);
+      if (generateData.text) {
+        setGeneratedText(generateData.text);
         if (subscription !== 'free') {
-          setSocialContent(data.social || { twitter: '', instagram: '', facebook: '', linkedin: '' });
+          setSocialContent(generateData.social || { twitter: '', instagram: '', facebook: '', linkedin: '' });
         }
         setGenerationCount((prev) => prev + 1);
         setMessage(
@@ -154,11 +177,11 @@ export default function GenerateListing() {
             : 'Listing and social media generated! Click "Save" to store them.'
         );
       } else {
-        setMessage(data.error || 'Failed to generate content');
+        setMessage(generateData.error || 'Failed to generate content');
       }
     } catch (error) {
       setLoading(false);
-      setMessage('Failed to process photos. Try again.');
+      setMessage('Failed to process request. Try again.');
       console.error('Fetch error:', error);
     }
   };
@@ -171,7 +194,7 @@ export default function GenerateListing() {
     }
 
     const trackableId = Date.now().toString();
-    const trackableUrl = subscription === 'pro' ? `https://airealestatecopy.com/track/${trackableId}` : undefined;
+    const trackableUrl = subscription === 'pro' ? `/api/track/${trackableId}` : undefined;
 
     try {
       const res = await fetch('/api/listings/save', {
@@ -227,7 +250,6 @@ export default function GenerateListing() {
     <div className="max-w-3xl mx-auto p-6 sm:p-8 lg:p-10 bg-gray-100 min-h-screen">
       <h1 className="text-4xl font-bold text-gray-900 mb-8 text-center">Create Your Real Estate Listing</h1>
 
-      {/* Form Section */}
       <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200 relative">
         {loading && (
           <div className="absolute inset-0 bg-gray-50 bg-opacity-75 flex items-center justify-center rounded-xl z-10">
@@ -338,7 +360,6 @@ export default function GenerateListing() {
         </div>
       </div>
 
-      {/* Message Feedback */}
       {message && (
         <div className={`mt-6 p-4 rounded-lg border flex items-center gap-2 animate-fade-in ${getMessageStyles()}`}>
           {message.includes('successfully') ? (
@@ -366,7 +387,6 @@ export default function GenerateListing() {
         </div>
       )}
 
-      {/* Generated Content */}
       {generatedText && (
         <div className="mt-8 bg-white p-8 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
           <div className="mb-6">

@@ -5,15 +5,33 @@ import { authOptions } from '../../lib/auth';
 import OpenAI from 'openai';
 import connectDB from '../../lib/db';
 import User from '../../models/User';
+import { v2 as cloudinary } from 'cloudinary';
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const MAX_PHOTOS = 10;
+
+async function cleanupTemporaryPhotos() {
+  try {
+    const result = await cloudinary.api.delete_resources_by_prefix('real-estate-temp', {
+      resource_type: 'image',
+    });
+    console.log('Cleanup result:', result);
+  } catch (error) {
+    console.error('Error cleaning up temporary photos:', error);
+  }
+}
 
 export async function POST(req: NextRequest) {
   console.log('API called: /api/generate');
-  if (!process.env.OPENAI_API_KEY) {
-    console.log('OpenAI API key is missing');
-    return NextResponse.json({ error: 'OpenAI API key is not configured.' }, { status: 500 });
+  if (!process.env.OPENAI_API_KEY || !process.env.CLOUDINARY_CLOUD_NAME) {
+    console.log('API keys missing');
+    return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
   }
 
   const session = await getServerSession(authOptions);
@@ -34,34 +52,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Daily limit reached.' }, { status: 403 });
   }
 
-  const formData = await req.formData();
-  const photoCount = parseInt(formData.get('photoCount') as string, 10);
-  if (!photoCount || photoCount < 1) {
-    console.log('No photos provided');
-    return NextResponse.json({ error: 'At least one photo is required.' }, { status: 400 });
-  }
-  if (photoCount > MAX_PHOTOS) {
-    console.log(`Photo count (${photoCount}) exceeds maximum allowed (${MAX_PHOTOS})`);
-    return NextResponse.json({ error: `Maximum ${MAX_PHOTOS} photos allowed per request.` }, { status: 400 });
+  const body = await req.json();
+  const { imageUrls, tone, language, maxWords } = body;
+
+  if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
+    console.log('No image URLs provided');
+    return NextResponse.json({ error: 'At least one photo URL is required.' }, { status: 400 });
   }
 
-  const photos: File[] = [];
-  for (let i = 0; i < photoCount; i++) {
-    const photo = formData.get(`photo${i}`) as File;
-    if (photo) photos.push(photo);
-  }
+  const effectiveTone = tone || 'default';
+  const effectiveLanguage = language || 'English';
+  const effectiveMaxWords = maxWords ? parseInt(maxWords, 10) : (user.subscriptionStatus === 'free' ? 100 : 200);
 
-  const tone = formData.get('tone') as string || 'default';
-  const language = formData.get('language') as string || 'English';
-  const maxWords = formData.get('maxWords') ? parseInt(formData.get('maxWords') as string, 10) : (user.subscriptionStatus === 'free' ? 100 : 200);
-
-  console.log(`Processing ${photos.length} photos`);
-  const base64Images = await Promise.all(
-    photos.map(async (photo) => {
-      const buffer = Buffer.from(await photo.arrayBuffer());
-      return `data:image/jpeg;base64,${buffer.toString('base64')}`;
-    })
-  );
+  console.log(`Processing ${imageUrls.length} photo URLs`);
 
   try {
     console.log('Starting GPT-4o bulk analysis');
@@ -73,11 +76,11 @@ export async function POST(req: NextRequest) {
           content: [
             {
               type: 'text',
-              text: `Analyze these ${photos.length} interior photos and generate a single ${tone} real estate listing in ${language}, max ${maxWords} words, focusing only on interior features (exclude exterior details like yards or facades). Combine all pertinent interior details into a captivating description. Then, if user is not free-tier, generate social media posts: Twitter (25 words max), Instagram (30 words max), Facebook (50 words max), LinkedIn (75 words max). Separate each section with "---" and do not include platform names or headers like "## Twitter"—just the raw text.`,
+              text: `Analyze these ${imageUrls.length} interior photos and generate a single ${effectiveTone} real estate listing in ${effectiveLanguage}, max ${effectiveMaxWords} words, focusing only on interior features (exclude exterior details like yards or facades). Combine all pertinent interior details into a captivating description. Then, if user is not free-tier, generate social media posts: Twitter (25 words max), Instagram (30 words max), Facebook (50 words max), LinkedIn (75 words max). Separate each section with "---" and do not include platform names or headers like "## Twitter"—just the raw text.`,
             },
-            ...base64Images.map((base64) => ({
+            ...imageUrls.map((url: string) => ({
               type: 'image_url' as const,
-              image_url: { url: base64 },
+              image_url: { url },
             })),
           ],
         },
@@ -89,19 +92,20 @@ export async function POST(req: NextRequest) {
     const gptOutput = response.choices[0]?.message.content || '';
     console.log('GPT-4o raw output:', gptOutput);
 
-    const sections = gptOutput.split('---').map(s => s.trim());
+    const sections = gptOutput.split('---').map((s) => s.trim());
     const listing = sections[0] || 'A beautifully designed interior with stunning features.';
     const socialParts = sections.slice(1);
 
-    const cleanSocialParts = socialParts.map(part => part.trim());
-    const socialContent = user.subscriptionStatus !== 'free' ? {
-      twitter: cleanSocialParts[0] || 'Step inside this stunning interior! Book a tour! #RealEstate',
-      instagram: cleanSocialParts[1] || 'Elegant interiors await! Ready to move in? #HomeGoals',
-      facebook: cleanSocialParts[2] || 'Discover elegant interiors with top-tier features. Contact us!',
-      linkedin: cleanSocialParts[3] || 'New listing: Elegant interiors with modern amenities. Reach out! #RealEstate',
-    } : {};
+    const cleanSocialParts = socialParts.map((part) => part.trim());
+    const socialContent = user.subscriptionStatus !== 'free'
+      ? {
+          twitter: cleanSocialParts[0] || 'Step inside this stunning interior! Book a tour! #RealEstate',
+          instagram: cleanSocialParts[1] || 'Elegant interiors await! Ready to move in? #HomeGoals',
+          facebook: cleanSocialParts[2] || 'Discover elegant interiors with top-tier features. Contact us!',
+          linkedin: cleanSocialParts[3] || 'New listing: Elegant interiors with modern amenities. Reach out! #RealEstate',
+        }
+      : {};
 
-    // Update daily generations (no saving here)
     if (!user.lastFreeGeneration || user.lastFreeGeneration !== today) {
       user.lastFreeGeneration = today;
       user.dailyGenerations = 1;
@@ -110,9 +114,12 @@ export async function POST(req: NextRequest) {
     }
     await user.save();
 
+    // Clean up after successful generation
+    await cleanupTemporaryPhotos();
+
     return NextResponse.json({ text: listing, social: socialContent });
   } catch (error) {
     console.error('Error processing photos with GPT-4o:', error);
-    return NextResponse.json({ error: 'Failed to process photos.' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to generate listing.' }, { status: 500 });
   }
 }
