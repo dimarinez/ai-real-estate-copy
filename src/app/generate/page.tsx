@@ -5,7 +5,23 @@ import { useState, useEffect } from 'react';
 import { FaCopy, FaSave, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
 import { Autocomplete, useLoadScript, Libraries } from '@react-google-maps/api';
 import imageCompression from 'browser-image-compression';
-import heic2any from 'heic2any';
+
+type Heic2Any = (options: {
+  blob: Blob;
+  toType?: string;
+  quality?: number;
+  gifInterval?: number;
+  multiple?: boolean;
+}) => Promise<Blob | Blob[]>;
+
+// Lazy-load heic2any only when needed
+let heic2anyPromise: Promise<Heic2Any> | null = null;
+const loadHeic2any = () => {
+  if (!heic2anyPromise) {
+    heic2anyPromise = import('heic2any').then((module) => module.default as Heic2Any);
+  }
+  return heic2anyPromise;
+};
 
 const libraries: Libraries = ['places'];
 
@@ -89,6 +105,7 @@ export default function GenerateListing() {
             let fileToCompress = file;
             if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
               console.log(`Converting HEIC: ${file.name}`);
+              const heic2any = await loadHeic2any();
               const convertedBlob = await heic2any({
                 blob: file,
                 toType: 'image/jpeg',
