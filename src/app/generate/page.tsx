@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { FaCopy, FaSave, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
 import { Autocomplete, useLoadScript, Libraries } from '@react-google-maps/api';
 import imageCompression from 'browser-image-compression';
+import { useDropzone } from 'react-dropzone'; // Import react-dropzone
 
 type Heic2Any = (options: {
   blob: Blob;
@@ -14,7 +15,6 @@ type Heic2Any = (options: {
   multiple?: boolean;
 }) => Promise<Blob | Blob[]>;
 
-// Lazy-load heic2any only when needed
 let heic2anyPromise: Promise<Heic2Any> | null = null;
 const loadHeic2any = () => {
   if (!heic2anyPromise) {
@@ -48,7 +48,7 @@ export default function GenerateListing() {
     linkedin: '',
   });
   const [message, setMessage] = useState('');
-  const [subscription, setSubscription] = useState<string | null>(null); // Null until loaded
+  const [subscription, setSubscription] = useState<string | null>(null);
   const [savedListingsCount, setSavedListingsCount] = useState(0);
   const [generationCount, setGenerationCount] = useState(0);
   const [copied, setCopied] = useState<string | null>(null);
@@ -79,13 +79,30 @@ export default function GenerateListing() {
     fetchUserData();
   }, []);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) {
+  const handleFileChange = async (acceptedFiles: File[]) => {
+    if (!acceptedFiles || acceptedFiles.length === 0) {
       setMessage('No files selected.');
       return;
     }
 
-    const files = Array.from(e.target.files);
+    const now = Date.now();
+    const maxAgeSeconds = 30; // Files must be at least 30 seconds old
+
+    // Filter out files that seem freshly taken (camera photos)
+    const libraryFiles = acceptedFiles.filter((file) => {
+      const ageInSeconds = (now - file.lastModified) / 1000;
+      if (ageInSeconds < maxAgeSeconds) {
+        console.log(`Rejected ${file.name}: Appears to be a new photo (${ageInSeconds}s old). Use library photos instead.`);
+        return false;
+      }
+      return true;
+    });
+
+    if (libraryFiles.length === 0) {
+      setMessage('Please select photos from your library, not new camera shots.');
+      return;
+    }
+
     const options = {
       maxSizeMB: 0.5,
       maxWidthOrHeight: 1024,
@@ -97,9 +114,9 @@ export default function GenerateListing() {
 
     try {
       const processedFiles = await Promise.all(
-        files.map(async (file, index) => {
+        libraryFiles.map(async (file, index) => {
           try {
-            console.log(`Processing file ${index + 1}/${files.length}: ${file.name}`);
+            console.log(`Processing file ${index + 1}/${libraryFiles.length}: ${file.name}`);
             console.log(`Original size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
 
             let fileToCompress = file;
@@ -110,8 +127,9 @@ export default function GenerateListing() {
                 blob: file,
                 toType: 'image/jpeg',
                 quality: 0.8,
-              }) as Blob;
-              fileToCompress = new File([convertedBlob], `${file.name.replace(/\.heic$/i, '.jpg')}`, {
+              });
+              const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+              fileToCompress = new File([blob], `${file.name.replace(/\.heic$/i, '.jpg')}`, {
                 type: 'image/jpeg',
               });
               console.log(`Converted size: ${(fileToCompress.size / 1024 / 1024).toFixed(2)} MB`);
@@ -148,6 +166,17 @@ export default function GenerateListing() {
       setLoadingMessage('');
     }
   };
+
+  // Initialize react-dropzone
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: handleFileChange,
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.heic'], // Restrict to image types
+    },
+    multiple: true,
+    maxFiles: 10,
+    disabled: loading,
+  });
 
   const handleGenerate = async () => {
     if (photos.length === 0) {
@@ -321,16 +350,29 @@ export default function GenerateListing() {
           </div>
         )}
         <div className="space-y-6">
-          <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Property Photos (Max 10)</label>
-            <input
-              type="file"
-              accept="image/*,.heic"
-              multiple
-              onChange={handleFileChange}
-              disabled={loading}
-              className="block w-full text-sm text-gray-600 file:mr-4 file:py-3 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 disabled:file:bg-gray-200 disabled:text-gray-400 transition-all"
-            />
+        <div className="relative">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Property Photos (Max 10, Select from Library)
+            </label>
+            <div
+              {...getRootProps()}
+              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all ${
+                isDragActive
+                  ? 'border-blue-500 bg-blue-50'
+                  : loading
+                  ? 'border-gray-300 bg-gray-200 cursor-not-allowed'
+                  : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
+              }`}
+            >
+              <input {...getInputProps()} />
+              {isDragActive ? (
+                <p className="text-blue-600">Drop your photos here...</p>
+              ) : (
+                <p className="text-gray-600">
+                  Drag and drop photos here, or click to select from your library
+                </p>
+              )}
+            </div>
             {photos.length > 0 && (
               <p className="mt-2 text-sm text-gray-500">{photos.length}/10 photos selected</p>
             )}
@@ -398,16 +440,37 @@ export default function GenerateListing() {
 
           <div className="relative">
             <label htmlFor="maxWords" className="block text-sm font-medium text-gray-700 mb-1">
-              Max Words
+              Desired Word Count
             </label>
             <input
               id="maxWords"
               type="number"
+              inputMode="numeric" // Forces numeric keyboard on mobile
+              pattern="[0-9]*" // Validates only numbers
               value={maxWords}
-              onChange={(e) => setMaxWords(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                // Only allow numbers (including empty string for clearing)
+                if (/^\d*$/.test(value)) {
+                  setMaxWords(value);
+                }
+              }}
+              onKeyDown={(e) => {
+                // Prevent non-numeric keys (except control keys like Backspace, Arrow keys)
+                if (
+                  !/[0-9]/.test(e.key) &&
+                  e.key !== 'Backspace' &&
+                  e.key !== 'Delete' &&
+                  e.key !== 'ArrowLeft' &&
+                  e.key !== 'ArrowRight' &&
+                  e.key !== 'Tab'
+                ) {
+                  e.preventDefault();
+                }
+              }}
               disabled={loading}
               className="w-full p-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-200 disabled:text-gray-400 transition-all"
-              placeholder={subscription === 'free' ? '100 (Free)' : '200 (Paid)'}
+              placeholder='e.g., 200 (optional)'
             />
           </div>
 
