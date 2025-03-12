@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { FaCopy, FaSave, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
 import { Autocomplete, useLoadScript, Libraries } from '@react-google-maps/api';
+import imageCompression from 'browser-image-compression';
 
 // Define libraries as a const array with inferred type or explicit Libraries type
 const libraries: Libraries = ['places']; // Only 'places' is needed for Autocomplete
@@ -38,8 +39,8 @@ export default function GenerateListing() {
   const [redirectUrl, setRedirectUrl] = useState('');
 
   const { isLoaded } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS || '',
-    libraries, // Pass the correctly typed libraries
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+    libraries,
   });
 
   useEffect(() => {
@@ -61,15 +62,32 @@ export default function GenerateListing() {
     fetchUserData();
   }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
       if (files.length > 10) {
         setMessage('Maximum 10 photos allowed.');
         setPhotos(files.slice(0, 10));
-      } else {
-        setPhotos(files);
+        return;
+      }
+
+      setMessage('Compressing photos...');
+      try {
+        const compressedFiles = await Promise.all(
+          files.map(async (file) => {
+            const options = {
+              maxSizeMB: 0.5, // Limit to 0.5 MB per photo
+              maxWidthOrHeight: 1024, // Resize to max 1024px
+            };
+            return await imageCompression(file, options);
+          })
+        );
+        setPhotos(compressedFiles);
         setMessage('');
+      } catch (error) {
+        setMessage('Error compressing photos. Using originals.');
+        setPhotos(files); // Fallback to originals
+        console.error('Compression error:', error);
       }
     }
   };
@@ -151,10 +169,10 @@ export default function GenerateListing() {
       setMessage(`You’ve reached your limit of ${maxSaved} saved listings. Upgrade or delete existing listings.`);
       return;
     }
-  
-    const trackableId = Date.now().toString(); // e.g., "1741731726060"
-    const trackableUrl = subscription === 'pro' ? `/api/track/${trackableId}` : undefined;
-  
+
+    const trackableId = Date.now().toString();
+    const trackableUrl = subscription === 'pro' ? `https://airealestatecopy.com/track/${trackableId}` : undefined;
+
     try {
       const res = await fetch('/api/listings/save', {
         method: 'POST',
@@ -167,7 +185,7 @@ export default function GenerateListing() {
           analytics: subscription === 'pro' ? { trackableUrl, redirectUrl, views: 0 } : undefined,
         }),
       });
-  
+
       const data = await res.json();
       if (res.ok) {
         setSavedListingsCount((prev) => prev + 1);
