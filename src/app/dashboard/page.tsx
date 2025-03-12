@@ -30,9 +30,9 @@ interface Listing {
 export default function Dashboard() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [visibleListings, setVisibleListings] = useState(6);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Controls initial load
   const [error, setError] = useState('');
-  const [subscription, setSubscription] = useState('free');
+  const [subscription, setSubscription] = useState<string | null>(null); // Null until loaded
   const [expandedListing, setExpandedListing] = useState<number | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'description' | 'analytics' | 'social'>('description');
@@ -57,7 +57,7 @@ export default function Dashboard() {
 
       setSubscription(subData.subscriptionStatus || 'free');
     } catch (err) {
-      setError('Failed to load data. Please try again.' + err);
+      setError('Failed to load data. Please try again: ' + err);
     } finally {
       setLoading(false);
     }
@@ -93,12 +93,25 @@ export default function Dashboard() {
           setError('Failed to delete listing');
         }
       } catch (err) {
-        setError('Error deleting listing:' + err);
+        setError('Error deleting listing: ' + err);
       }
     }
   };
 
+  // Wait until subscription is loaded to compute maxSaved
   const maxSaved = subscription === 'pro' ? 500 : subscription === 'basic' ? 25 : 5;
+
+  // Show loading state until data is fully fetched
+  if (loading || subscription === null) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-700 font-medium">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -127,21 +140,6 @@ export default function Dashboard() {
           )}
         </header>
 
-        {/* Loading State */}
-        {loading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {Array(6)
-              .fill(0)
-              .map((_, i) => (
-                <div key={i} className="bg-white p-6 rounded-xl shadow-md border border-gray-200 animate-pulse">
-                  <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-full mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-                </div>
-              ))}
-          </div>
-        )}
-
         {/* Error State */}
         {error && (
           <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6 flex items-center gap-2 animate-fade-in">
@@ -151,7 +149,7 @@ export default function Dashboard() {
         )}
 
         {/* No Listings */}
-        {!loading && listings.length === 0 && !error && (
+        {!listings.length && !error && (
           <div className="text-center py-12 bg-white rounded-xl shadow-md border border-gray-200">
             <p className="text-lg text-gray-600">No saved listings yet.</p>
             <a
@@ -164,7 +162,7 @@ export default function Dashboard() {
         )}
 
         {/* Listings Grid */}
-        {!loading && listings.length > 0 && (
+        {listings.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {listings.slice(0, visibleListings).map((listing, index) => (
               <div
@@ -191,7 +189,9 @@ export default function Dashboard() {
                           setActiveTab('description');
                         }}
                         className={`py-2 px-4 text-sm font-medium ${
-                          activeTab === 'description' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-blue-600'
+                          activeTab === 'description'
+                            ? 'border-b-2 border-blue-600 text-blue-600'
+                            : 'text-gray-600 hover:text-blue-600'
                         }`}
                       >
                         Description
@@ -203,7 +203,9 @@ export default function Dashboard() {
                             setActiveTab('analytics');
                           }}
                           className={`py-2 px-4 text-sm font-medium ${
-                            activeTab === 'analytics' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-blue-600'
+                            activeTab === 'analytics'
+                              ? 'border-b-2 border-blue-600 text-blue-600'
+                              : 'text-gray-600 hover:text-blue-600'
                           }`}
                         >
                           Analytics
@@ -216,7 +218,9 @@ export default function Dashboard() {
                             setActiveTab('social');
                           }}
                           className={`py-2 px-4 text-sm font-medium ${
-                            activeTab === 'social' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600 hover:text-blue-600'
+                            activeTab === 'social'
+                              ? 'border-b-2 border-blue-600 text-blue-600'
+                              : 'text-gray-600 hover:text-blue-600'
                           }`}
                         >
                           Social
@@ -231,7 +235,9 @@ export default function Dashboard() {
                           {listing.location && listing.location !== listing.title && (
                             <p className="text-sm text-gray-600">Location: {listing.location}</p>
                           )}
-                          <p className="text-gray-600 leading-relaxed max-h-48 overflow-y-auto">{listing.description}</p>
+                          <p className="text-gray-600 leading-relaxed max-h-48 overflow-y-auto">
+                            {listing.description}
+                          </p>
                           <div className="flex gap-3">
                             <button
                               onClick={(e) => {
@@ -276,7 +282,8 @@ export default function Dashboard() {
                                 className="text-blue-600 hover:underline"
                               >
                                 {listing.analytics.redirectUrl}
-                              </a>)
+                              </a>
+                              )
                             </span>
                           </p>
                           {listing.analytics.lastUpdated && (
@@ -324,7 +331,7 @@ export default function Dashboard() {
         )}
 
         {/* Load More */}
-        {visibleListings < listings.length && !loading && (
+        {visibleListings < listings.length && (
           <div className="mt-10 text-center">
             <button
               onClick={loadMore}

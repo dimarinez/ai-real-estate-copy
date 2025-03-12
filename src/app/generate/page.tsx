@@ -4,7 +4,8 @@
 import { useState, useEffect } from 'react';
 import { FaCopy, FaSave, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
 import { Autocomplete, useLoadScript, Libraries } from '@react-google-maps/api';
-import imageCompression from 'browser-image-compression'; // Import the library
+import imageCompression from 'browser-image-compression';
+import heic2any from 'heic2any';
 
 const libraries: Libraries = ['places'];
 
@@ -31,7 +32,7 @@ export default function GenerateListing() {
     linkedin: '',
   });
   const [message, setMessage] = useState('');
-  const [subscription, setSubscription] = useState('free');
+  const [subscription, setSubscription] = useState<string | null>(null); // Null until loaded
   const [savedListingsCount, setSavedListingsCount] = useState(0);
   const [generationCount, setGenerationCount] = useState(0);
   const [copied, setCopied] = useState<string | null>(null);
@@ -56,47 +57,78 @@ export default function GenerateListing() {
         setGenerationCount(subData.generationCount || 0);
       } catch (error) {
         console.error('Error fetching user data:', error);
+        setMessage('Failed to load user data. Some features may be unavailable.');
       }
     }
     fetchUserData();
   }, []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files);
-      const options = {
-        maxSizeMB: 0.5, // Compress to 500 KB max per image
-        maxWidthOrHeight: 1024, // Resize to max 1024px width or height
-        useWebWorker: true, // Offload to a web worker for performance
-      };
+    if (!e.target.files || e.target.files.length === 0) {
+      setMessage('No files selected.');
+      return;
+    }
 
-      setLoading(true); // Show loading state during compression
-      setLoadingMessage('Compressing photos…');
+    const files = Array.from(e.target.files);
+    const options = {
+      maxSizeMB: 0.5,
+      maxWidthOrHeight: 1024,
+      useWebWorker: true,
+    };
 
-      try {
-        const compressedFiles = await Promise.all(
-          files.map(async (file) => {
-            console.log(`Original size of ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
-            const compressedFile = await imageCompression(file, options);
-            console.log(`Compressed size of ${file.name}: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`);
+    setLoading(true);
+    setLoadingMessage('Processing photos…');
+
+    try {
+      const processedFiles = await Promise.all(
+        files.map(async (file, index) => {
+          try {
+            console.log(`Processing file ${index + 1}/${files.length}: ${file.name}`);
+            console.log(`Original size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+
+            let fileToCompress = file;
+            if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
+              console.log(`Converting HEIC: ${file.name}`);
+              const convertedBlob = await heic2any({
+                blob: file,
+                toType: 'image/jpeg',
+                quality: 0.8,
+              }) as Blob;
+              fileToCompress = new File([convertedBlob], `${file.name.replace(/\.heic$/i, '.jpg')}`, {
+                type: 'image/jpeg',
+              });
+              console.log(`Converted size: ${(fileToCompress.size / 1024 / 1024).toFixed(2)} MB`);
+            }
+
+            const compressedFile = await imageCompression(fileToCompress, options);
+            console.log(`Compressed size: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`);
             return compressedFile;
-          })
-        );
+          } catch (err) {
+            console.error(`Error processing ${file.name}:`, err);
+            return null;
+          }
+        })
+      );
 
-        if (compressedFiles.length > 10) {
-          setMessage('Maximum 10 photos allowed.');
-          setPhotos(compressedFiles.slice(0, 10));
-        } else {
-          setPhotos(compressedFiles);
-          setMessage('');
-        }
-      } catch (error) {
-        setMessage('Error compressing images. Please try again.');
-        console.error('Compression error:', error);
-      } finally {
-        setLoading(false);
-        setLoadingMessage('');
+      const validFiles = processedFiles.filter((file): file is File => file !== null);
+      if (validFiles.length === 0) {
+        throw new Error('No valid photos processed. Check file formats.');
       }
+
+      if (validFiles.length > 10) {
+        setMessage('Maximum 10 photos allowed. Only the first 10 will be used.');
+        setPhotos(validFiles.slice(0, 10));
+      } else {
+        setPhotos(validFiles);
+        setMessage(`${validFiles.length} photo${validFiles.length === 1 ? '' : 's'} ready.`);
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Error processing images. Try different files.');
+      console.error('Processing batch error:', error);
+      setPhotos([]);
+    } finally {
+      setLoading(false);
+      setLoadingMessage('');
     }
   };
 
@@ -244,7 +276,19 @@ export default function GenerateListing() {
     }
   };
 
-  if (!isLoaded) return <div>Loading Google Maps...</div>;
+  // Full-page loader until Google Maps and user data are ready
+  if (!isLoaded || subscription === null) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-700 font-medium">
+            {isLoaded ? 'Loading your data...' : 'Loading Google Maps...'}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto p-6 sm:p-8 lg:p-10 bg-gray-100 min-h-screen">
@@ -264,7 +308,7 @@ export default function GenerateListing() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Property Photos (Max 10)</label>
             <input
               type="file"
-              accept="image/*"
+              accept="image/*,.heic"
               multiple
               onChange={handleFileChange}
               disabled={loading}
