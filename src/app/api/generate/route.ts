@@ -18,17 +18,15 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 async function cleanupTemporaryPhotos() {
   try {
-    const result = await cloudinary.api.delete_resources_by_prefix('real-estate-temp', {
+    await cloudinary.api.delete_resources_by_prefix('real-estate-temp', {
       resource_type: 'image',
     });
-    console.log('Cleanup result:', result);
   } catch (error) {
     console.error('Error cleaning up temporary photos:', error);
   }
 }
 
 export async function POST(req: NextRequest) {
-  console.log('API called: /api/generate');
   if (!process.env.OPENAI_API_KEY || !process.env.CLOUDINARY_CLOUD_NAME) {
     console.log('API keys missing');
     return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
@@ -56,15 +54,12 @@ export async function POST(req: NextRequest) {
   const { imageUrls, tone, language } = body;
 
   if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
-    console.log('No image URLs provided');
     return NextResponse.json({ error: 'At least one photo URL is required.' }, { status: 400 });
   }
 
   const effectiveTone = tone || 'default';
   const effectiveLanguage = language || 'English';
   const effectiveMaxWords = user.subscriptionStatus === 'free' ? 100 : 200;
-
-  console.log(`Processing ${imageUrls.length} photo URLs`);
 
   try {
     console.log('Starting GPT-4o bulk analysis');
@@ -90,7 +85,6 @@ export async function POST(req: NextRequest) {
     });
 
     const gptOutput = response.choices[0]?.message.content || '';
-    console.log('GPT-4o raw output:', gptOutput);
 
     const sections = gptOutput.split('---').map((s) => s.trim());
     const listing = sections[0] || 'A beautifully designed interior with stunning features.';
@@ -109,6 +103,7 @@ export async function POST(req: NextRequest) {
     if (!user.lastFreeGeneration || user.lastFreeGeneration !== today) {
       user.lastFreeGeneration = today;
       user.dailyGenerations = 1;
+      
     } else {
       user.dailyGenerations += 1;
     }

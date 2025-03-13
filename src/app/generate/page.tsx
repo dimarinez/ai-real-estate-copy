@@ -46,12 +46,15 @@ export default function GenerateListing() {
     facebook: '',
     linkedin: '',
   });
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(''); // General messages (e.g., errors)
+  const [saveMessage, setSaveMessage] = useState(''); // Save-specific feedback
+  const [isSaved, setIsSaved] = useState(false); // Track if this listing is saved
   const [subscription, setSubscription] = useState<string | null>(null);
   const [savedListingsCount, setSavedListingsCount] = useState(0);
   const [generationCount, setGenerationCount] = useState(0);
   const [copied, setCopied] = useState<string | null>(null);
   const [redirectUrl, setRedirectUrl] = useState('');
+  const [isMounted, setIsMounted] = useState(false); // Hydration safety
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS || '',
@@ -59,6 +62,7 @@ export default function GenerateListing() {
   });
 
   useEffect(() => {
+    setIsMounted(true);
     async function fetchUserData() {
       try {
         const [subRes, listingsRes] = await Promise.all([
@@ -79,6 +83,7 @@ export default function GenerateListing() {
   }, []);
 
   const handleFileChange = async (acceptedFiles: File[]) => {
+    // ... (unchanged, keep existing logic)
     if (!acceptedFiles || acceptedFiles.length === 0) {
       setMessage('No files selected.');
       return;
@@ -176,6 +181,7 @@ export default function GenerateListing() {
   });
 
   const handleGenerate = async () => {
+    // ... (unchanged, keep existing logic)
     if (photos.length === 0) {
       setMessage('Please upload at least one property photo.');
       return;
@@ -193,6 +199,8 @@ export default function GenerateListing() {
     setSocialContent({ twitter: '', instagram: '', facebook: '', linkedin: '' });
     setCopied(null);
     setRedirectUrl('');
+    setIsSaved(false); // Reset save state on new generation
+    setSaveMessage('');
 
     setLoadingMessage('Uploading photos…');
 
@@ -256,12 +264,17 @@ export default function GenerateListing() {
   const handleSave = async () => {
     const maxSaved = subscription === 'pro' ? 500 : subscription === 'basic' ? 10 : 5;
     if (savedListingsCount >= maxSaved) {
-      setMessage(`You’ve reached your limit of ${maxSaved} saved listings. Upgrade or delete existing listings.`);
+      setSaveMessage(`You’ve reached your limit of ${maxSaved} saved listings. Upgrade or delete existing listings.`);
+      return;
+    }
+
+    if (isSaved) {
+      setSaveMessage('This listing has already been saved.');
       return;
     }
 
     const trackableId = Date.now().toString();
-    const trackableUrl = subscription === 'pro' ? `/api/track/${trackableId}` : undefined;
+    const trackableUrl = subscription === 'pro' ? `/listing/${trackableId}` : undefined;
 
     try {
       const res = await fetch('/api/listings/save', {
@@ -279,12 +292,13 @@ export default function GenerateListing() {
       const data = await res.json();
       if (res.ok) {
         setSavedListingsCount((prev) => prev + 1);
-        setMessage(`Listing saved successfully! Track it at ${trackableUrl || 'your dashboard'}.`);
+        setIsSaved(true);
+        setSaveMessage(`Listing saved successfully! Track it at ${trackableUrl || 'your dashboard'}.`);
       } else {
-        setMessage(data.error || 'Failed to save listing');
+        setSaveMessage(data.error || 'Failed to save listing');
       }
     } catch (error) {
-      setMessage('Error saving listing. Try again.');
+      setSaveMessage('Error saving listing. Try again.');
       console.error('Save error:', error);
     }
   };
@@ -295,16 +309,17 @@ export default function GenerateListing() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const getMessageStyles = () => {
-    if (message.includes('successfully')) {
+  const getMessageStyles = (msg: string) => {
+    if (msg.includes('successfully')) {
       return 'bg-green-50 text-green-700 border-green-200';
     } else if (
-      message.includes('upload') ||
-      message.includes('number') ||
-      message.includes('process') ||
-      message.includes('save listing') ||
-      message.includes('generate content') ||
-      message.includes('camera shots')
+      msg.includes('upload') ||
+      msg.includes('number') ||
+      msg.includes('process') ||
+      msg.includes('save listing') ||
+      msg.includes('generate content') ||
+      msg.includes('camera shots') ||
+      msg.includes('already been saved')
     ) {
       return 'bg-red-50 text-red-700 border-red-200';
     } else {
@@ -312,7 +327,8 @@ export default function GenerateListing() {
     }
   };
 
-  if (!isLoaded || subscription === null) {
+  // Hydration-safe initial render
+  if (!isMounted || !isLoaded || subscription === null) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -339,7 +355,7 @@ export default function GenerateListing() {
           </div>
         )}
         {message && (
-          <div className={`mb-6 p-4 rounded-lg border flex items-center gap-2 animate-fade-in ${getMessageStyles()}`}>
+          <div className={`mb-6 p-4 rounded-lg border flex items-center gap-2 animate-fade-in ${getMessageStyles(message)}`}>
             {message.includes('successfully') ? (
               <FaCheckCircle className="text-green-600" />
             ) : message.includes('upload') ||
@@ -356,11 +372,6 @@ export default function GenerateListing() {
             {message.includes('limit') && (
               <a href="/pricing" className="text-blue-600 hover:underline">
                 Upgrade Now
-              </a>
-            )}
-            {message.includes('saved') && (
-              <a href="/dashboard" className="text-blue-600 hover:underline">
-                Go to Dashboard
               </a>
             )}
           </div>
@@ -395,54 +406,54 @@ export default function GenerateListing() {
           </div>
 
           {subscription !== 'free' && (
-          <div className="relative">
-            <label htmlFor="tone" className="block text-sm font-medium text-gray-700 mb-1">
-              Tone
-            </label>
-            <select
-              id="tone"
-              value={tone}
-              onChange={(e) => setTone(e.target.value)}
-              disabled={loading}
-              className="w-full p-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-200 disabled:text-gray-400 transition-all"
-            >
-              <option value="default">Default</option>
-              <option value="professional">Professional</option>
-              <option value="casual">Casual</option>
-              <option value="luxury">Luxury</option>
-            </select>
-          </div>
+            <div className="relative">
+              <label htmlFor="tone" className="block text-sm font-medium text-gray-700 mb-1">
+                Tone
+              </label>
+              <select
+                id="tone"
+                value={tone}
+                onChange={(e) => setTone(e.target.value)}
+                disabled={loading}
+                className="w-full p-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-200 disabled:text-gray-400 transition-all"
+              >
+                <option value="default">Default</option>
+                <option value="professional">Professional</option>
+                <option value="casual">Casual</option>
+                <option value="luxury">Luxury</option>
+              </select>
+            </div>
           )}
 
           {subscription !== 'free' && (
-          <div className="relative">
-            <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-1">
-              Language
-            </label>
-            <select
-              id="language"
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              disabled={loading}
-              className="w-full p-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-200 disabled:text-gray-400 transition-all"
-            >
-              <option value="English">English</option>
-              <option value="Spanish">Spanish</option>
-              <option value="French">French</option>
-              <option value="German">German</option>
-              <option value="Italian">Italian</option>
-              <option value="Portuguese">Portuguese</option>
-              <option value="Chinese">Chinese</option>
-              <option value="Japanese">Japanese</option>
-              <option value="Korean">Korean</option>
-              <option value="Russian">Russian</option>
-              <option value="Arabic">Arabic</option>
-              <option value="Hindi">Hindi</option>
-              <option value="Turkish">Turkish</option>
-              <option value="Dutch">Dutch</option>
-              <option value="Swedish">Swedish</option>
-            </select>
-          </div>
+            <div className="relative">
+              <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-1">
+                Language
+              </label>
+              <select
+                id="language"
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                disabled={loading}
+                className="w-full p-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-200 disabled:text-gray-400 transition-all"
+              >
+                <option value="English">English</option>
+                <option value="Spanish">Spanish</option>
+                <option value="French">French</option>
+                <option value="German">German</option>
+                <option value="Italian">Italian</option>
+                <option value="Portuguese">Portuguese</option>
+                <option value="Chinese">Chinese</option>
+                <option value="Japanese">Japanese</option>
+                <option value="Korean">Korean</option>
+                <option value="Russian">Russian</option>
+                <option value="Arabic">Arabic</option>
+                <option value="Hindi">Hindi</option>
+                <option value="Turkish">Turkish</option>
+                <option value="Dutch">Dutch</option>
+                <option value="Swedish">Swedish</option>
+              </select>
+            </div>
           )}
 
           <div className="relative">
@@ -489,12 +500,35 @@ export default function GenerateListing() {
               <h2 className="text-2xl font-semibold text-gray-800">Generated Listing</h2>
               <button
                 onClick={handleSave}
-                className="flex items-center text-sm text-green-600 hover:text-green-800 transition-colors"
+                disabled={loading || isSaved}
+                className={`flex items-center text-sm transition-colors ${
+                  isSaved ? 'text-gray-400 cursor-not-allowed' : 'text-green-600 hover:text-green-800'
+                }`}
               >
                 <FaSave className="mr-1" />
-                Save Listing
+                {isSaved ? 'Saved' : 'Save Listing'}
               </button>
             </div>
+            {saveMessage && (
+              <div className={`mb-4 p-4 rounded-lg border flex items-center gap-2 ${getMessageStyles(saveMessage)}`}>
+                {saveMessage.includes('successfully') ? (
+                  <FaCheckCircle className="text-green-600" />
+                ) : (
+                  <FaExclamationCircle className="text-red-600" />
+                )}
+                <p className="flex-1">{saveMessage}</p>
+                {saveMessage.includes('limit') && (
+                  <a href="/pricing" className="text-blue-600 hover:underline">
+                    Upgrade Now
+                  </a>
+                )}
+                {saveMessage.includes('saved') && saveMessage.includes('Track') && (
+                  <a href="/dashboard" className="text-blue-600 hover:underline">
+                    Go to Dashboard
+                  </a>
+                )}
+              </div>
+            )}
             <p className="text-gray-600 leading-relaxed">{generatedText}</p>
             <button
               onClick={() => copyToClipboard(generatedText, 'listing')}
@@ -515,7 +549,8 @@ export default function GenerateListing() {
                 type="url"
                 value={redirectUrl}
                 onChange={(e) => setRedirectUrl(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                disabled={isSaved} // Disable after saving to prevent confusion
+                className="w-full p-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-200 disabled:text-gray-400 transition-all"
                 placeholder="https://zillow.com/homes/12345"
               />
               <p className="mt-1 text-xs text-gray-500">
