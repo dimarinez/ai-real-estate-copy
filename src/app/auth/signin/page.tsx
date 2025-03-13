@@ -11,6 +11,11 @@ export default function SignIn() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotMessage, setForgotMessage] = useState('');
+  const [forgotError, setForgotError] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,7 +25,7 @@ export default function SignIn() {
     const result = await signIn('credentials', {
       email,
       password,
-      redirect: false, // Prevent default redirection
+      redirect: false,
       callbackUrl: '/dashboard',
     });
 
@@ -30,6 +35,29 @@ export default function SignIn() {
       setError(result.error);
     } else if (result?.ok) {
       router.push('/dashboard');
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotMessage('');
+    setForgotLoading(true);
+
+    const res = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: forgotEmail }),
+    });
+
+    const data = await res.json();
+    setForgotLoading(false);
+
+    if (!res.ok) {
+      setForgotError(data.error || 'Something went wrong');
+    } else {
+      setForgotMessage('Password reset email sent! Check your inbox.');
+      setForgotEmail('');
     }
   };
 
@@ -72,6 +100,15 @@ export default function SignIn() {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+          </div>
+          <div className="text-right">
+            <button
+              type="button"
+              onClick={() => setShowForgotPassword(true)}
+              className="text-sm text-blue-600 hover:text-blue-800 font-semibold transition-colors"
+            >
+              Forgot Password?
+            </button>
           </div>
           <button
             type="submit"
@@ -118,6 +155,60 @@ export default function SignIn() {
           </a>
         </p>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Reset Your Password</h3>
+            {forgotError && (
+              <div className="mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 p-3 rounded-lg">
+                {forgotError}
+              </div>
+            )}
+            {forgotMessage && (
+              <div className="mb-4 bg-green-50 border-l-4 border-green-500 text-green-700 p-3 rounded-lg">
+                {forgotMessage}
+              </div>
+            )}
+            <form onSubmit={handleForgotPassword} className="space-y-4">
+              <div>
+                <label htmlFor="forgot-email" className="block text-sm font-medium text-gray-700">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  id="forgot-email"
+                  placeholder="Enter your email"
+                  className="mt-1 w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={forgotLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-semibold shadow-md hover:shadow-lg transition-all duration-200 disabled:bg-gray-400 disabled:shadow-none flex items-center justify-center gap-2"
+              >
+                {forgotLoading && (
+                  <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                )}
+                {forgotLoading ? 'Sending...' : 'Send Reset Link'}
+              </button>
+            </form>
+            <button
+              onClick={() => setShowForgotPassword(false)}
+              className="mt-4 w-full text-center text-sm text-gray-600 hover:text-gray-800 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

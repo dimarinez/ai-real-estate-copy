@@ -1,90 +1,70 @@
-// src/... (wherever your next-auth config is)
-import type {
-  NextAuthOptions,
-  User as NextAuthUser,
-  Session,
-  Account,
-} from "next-auth";
-import type { JWT } from "next-auth/jwt";
-import type { AdapterUser } from "next-auth/adapters";
+// /app/api/auth/[...nextauth]/route.ts
+import type { NextAuthOptions, User as NextAuthUser, Session, Account } from 'next-auth';
+import type { JWT } from 'next-auth/jwt';
+import type { AdapterUser } from 'next-auth/adapters';
 
-import GoogleProvider from "next-auth/providers/google";
-import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from 'next-auth/providers/google';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import bcrypt from 'bcrypt';
+import connectDB from '../lib/db'; // Adjusted path based on your earlier setup
+import User from '@/app/models/User'; // Adjusted path to your User model
 
-import bcrypt from "bcrypt";
-import connectDB from "./db";
-import User from "../models/User";
-
-/**
- * If you want to unify your DB user with NextAuth's `User`,
- * define a helper function to transform your Mongoose doc into a shape
- * that NextAuth expects (id, email, name, etc.).
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// Helper function to transform Mongoose user to NextAuth user
 function toNextAuthUser(dbUser: any): NextAuthUser {
   return {
-    // NextAuth expects `id` on the user if we want to store it in token
-    id: dbUser._id?.toString() || "",
+    id: dbUser._id?.toString() || '',
     email: dbUser.email,
     name: dbUser.name,
-    // other fields as needed
   };
 }
 
 export const authOptions: NextAuthOptions = {
-  // Use JWT-based sessions
-  session: { strategy: "jwt" },
-  secret: process.env.NEXTAUTH_SECRET, // required in production
+  session: { strategy: 'jwt' },
+  secret: process.env.NEXTAUTH_SECRET,
 
   providers: [
-    // 1. Google OAuth
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     }),
-
-    // 2. Credentials (email/password)
     CredentialsProvider({
-      name: "Credentials",
+      name: 'Credentials',
       credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
       },
-      // `authorize` must return `User | AdapterUser | null`
       async authorize(credentials): Promise<NextAuthUser | null> {
         if (!credentials?.email || !credentials.password) {
-          throw new Error("Missing email or password");
+          throw new Error('Missing email or password');
         }
 
         await connectDB();
-        // We must find the user in DB and compare password
-        const userDoc = await User.findOne({ email: credentials.email }).select("+password");
+        const userDoc = await User.findOne({ email: credentials.email }).select('+password');
         if (!userDoc) {
-          throw new Error("User not found");
+          throw new Error('User not found');
+        }
+
+        // Enforce email verification for Credentials users
+        if (!userDoc.isVerified) {
+          throw new Error('Please verify your email before signing in');
         }
 
         const isValid = await bcrypt.compare(credentials.password, userDoc.password);
         if (!isValid) {
-          throw new Error("Invalid password");
+          throw new Error('Invalid password');
         }
 
-        // Return a NextAuth-friendly user object
         return toNextAuthUser(userDoc);
       },
     }),
   ],
 
-  // Custom pages if desired
   pages: {
-    signIn: "/auth/signin",
-    error: "/auth/error",
+    signIn: '/auth/signin',
+    error: '/auth/error',
   },
 
   callbacks: {
-    /**
-     * `jwt` callback runs whenever a token is created or updated.
-     * We can store extra fields (like subscriptionStatus) in the token.
-     */
     async jwt({
       token,
       user,
@@ -96,31 +76,32 @@ export const authOptions: NextAuthOptions = {
     }): Promise<JWT> {
       await connectDB();
 
-      // If we just logged in (via Google or Credentials)
       if (account && user) {
         let existingUser = await User.findOne({ email: user.email });
         if (!existingUser) {
-          // create a new user in DB if not found
+          // Create new user if not found (e.g., first Google login)
           existingUser = await User.create({
             email: user.email,
             name: user.name,
-            subscriptionStatus: "free",
+            subscriptionStatus: 'free',
             createdAt: new Date(),
             savedListings: [],
+            isVerified: account.provider === 'google', // Auto-verify Google users
           });
+        } else if (account.provider === 'google' && !existingUser.isVerified) {
+          // Update existing unverified user to verified for Google login
+          existingUser.isVerified = true;
+          await existingUser.save();
         }
-        // Store relevant data on the token
+
         token.id = existingUser._id.toString();
         token.subscriptionStatus = existingUser.subscriptionStatus;
+        token.isVerified = existingUser.isVerified; // Store in token
       }
 
       return token;
     },
 
-    /**
-     * `session` callback is called whenever a session is checked (e.g. useSession).
-     * We copy data from the token to `session.user`.
-     */
     async session({
       session,
       token,
@@ -128,17 +109,15 @@ export const authOptions: NextAuthOptions = {
       session: Session;
       token: JWT;
     }): Promise<Session> {
-      if (token && session.user && 'id' in session.user && 'subscriptionStatus' in session.user) {
-        session.user.id = typeof token.id === "string" ? token.id : "";
+      if (token && session.user) {
+        session.user.id = typeof token.id === 'string' ? token.id : '';
         session.user.subscriptionStatus =
-          typeof token.subscriptionStatus === "string" ? token.subscriptionStatus : "";
+          typeof token.subscriptionStatus === 'string' ? token.subscriptionStatus : '';
+        session.user.isVerified = typeof token.isVerified === 'boolean' ? token.isVerified : false;
       }
       return session;
     },
 
-    /**
-     * `signIn` callback if you want custom logic to allow/deny sign-in
-     */
     async signIn({
       user,
       account,
@@ -148,19 +127,27 @@ export const authOptions: NextAuthOptions = {
     }): Promise<boolean> {
       await connectDB();
 
-      if (account?.provider === "google") {
+      if (account?.provider === 'google') {
         const existingUser = await User.findOne({ email: user.email });
         if (!existingUser) {
           await User.create({
             email: user.email,
             name: user.name,
-            subscriptionStatus: "free",
+            subscriptionStatus: 'free',
             createdAt: new Date(),
             savedListings: [],
+            isVerified: true, // Google users are auto-verified
           });
+        } else if (!existingUser.isVerified) {
+          // Update existing user to verified for Google login
+          existingUser.isVerified = true;
+          await existingUser.save();
         }
+        return true;
       }
-      return true; // return false to deny sign-in
+
+      // For Credentials, `authorize` already checks `isVerified`
+      return true;
     },
   },
 };

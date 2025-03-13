@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { imageUrls, tone, language, maxWords } = body;
+  const { imageUrls, tone, language } = body;
 
   if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
     console.log('No image URLs provided');
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
 
   const effectiveTone = tone || 'default';
   const effectiveLanguage = language || 'English';
-  const effectiveMaxWords = maxWords ? parseInt(maxWords, 10) : (user.subscriptionStatus === 'free' ? 100 : 200);
+  const effectiveMaxWords = user.subscriptionStatus === 'free' ? 100 : 200;
 
   console.log(`Processing ${imageUrls.length} photo URLs`);
 
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
           content: [
             {
               type: 'text',
-              text: `Analyze these ${imageUrls.length} interior photos and generate a single ${effectiveTone} real estate listing in ${effectiveLanguage}, max ${effectiveMaxWords} words, focusing only on interior features (exclude exterior details like yards or facades). Combine all pertinent interior details into a captivating description. Then, if user is not free-tier, generate social media posts: Twitter (25 words max), Instagram (30 words max), Facebook (50 words max), LinkedIn (75 words max). Separate each section with "---" and do not include platform names or headers like "## Twitter"—just the raw text.`,
+              text: `Analyze these ${imageUrls.length} photos and generate a single ${effectiveTone} real estate listing in ${effectiveLanguage}, max ${effectiveMaxWords} words. Combine all pertinent details into a captivating description.${user.subscriptionStatus !== 'free' ? " Then, generate social media posts: Twitter (25 words max), Instagram (30 words max), Facebook (50 words max), LinkedIn (75 words max). Separate each section with \"---\" and do not include platform names or headers like \"## Twitter\"—just the raw text." : ""}`,
             },
             ...imageUrls.map((url: string) => ({
               type: 'image_url' as const,

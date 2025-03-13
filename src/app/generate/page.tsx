@@ -394,6 +394,7 @@ export default function GenerateListing() {
             )}
           </div>
 
+          {subscription !== 'free' && (
           <div className="relative">
             <label htmlFor="tone" className="block text-sm font-medium text-gray-700 mb-1">
               Tone
@@ -411,21 +412,38 @@ export default function GenerateListing() {
               <option value="luxury">Luxury</option>
             </select>
           </div>
+          )}
 
+          {subscription !== 'free' && (
           <div className="relative">
             <label htmlFor="language" className="block text-sm font-medium text-gray-700 mb-1">
               Language
             </label>
-            <input
+            <select
               id="language"
-              type="text"
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
               disabled={loading}
               className="w-full p-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-200 disabled:text-gray-400 transition-all"
-              placeholder="English"
-            />
+            >
+              <option value="English">English</option>
+              <option value="Spanish">Spanish</option>
+              <option value="French">French</option>
+              <option value="German">German</option>
+              <option value="Italian">Italian</option>
+              <option value="Portuguese">Portuguese</option>
+              <option value="Chinese">Chinese</option>
+              <option value="Japanese">Japanese</option>
+              <option value="Korean">Korean</option>
+              <option value="Russian">Russian</option>
+              <option value="Arabic">Arabic</option>
+              <option value="Hindi">Hindi</option>
+              <option value="Turkish">Turkish</option>
+              <option value="Dutch">Dutch</option>
+              <option value="Swedish">Swedish</option>
+            </select>
           </div>
+          )}
 
           <div className="relative">
             <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
