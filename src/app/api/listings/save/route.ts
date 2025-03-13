@@ -28,8 +28,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Max ${maxSaved} listings reached` }, { status: 403 });
     }
 
-    console.log("Social from request:", social);
-
     // Pro-only: Add trackable URL and analytics
     let trackableUrl = null;
     if (user.subscriptionStatus === 'pro') {
@@ -55,14 +53,11 @@ export async function POST(req: NextRequest) {
         } : undefined,
     };
 
-    console.log("New listing to save:", newListing);
-
     user.savedListings.push(newListing);
     user.markModified('savedListings');
     await user.save();
 
-    const savedUser = await User.findOne({ email: session.user.email });
-    console.log("Saved listings after save:", savedUser.savedListings);
+    await User.findOne({ email: session.user.email });
 
     return NextResponse.json({ message: 'Listing saved' });
   } catch (error) {

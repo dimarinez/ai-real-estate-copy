@@ -33,7 +33,7 @@ export default function Navbar() {
 
   // Determine navbar background: transparent on homepage unless scrolled
   const isHomePage = pathname === '/';
-  const navBackground = isHomePage && !isScrolled 
+  const navBackground = isHomePage && !isScrolled && !isMenuOpen
     ? 'bg-transparent' 
     : 'bg-gradient-to-r from-blue-600 to-blue-800 shadow-md';
 
@@ -70,7 +70,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className={`top-0 z-2 left-0 w-full text-white p-4 transition-colors duration-300 ${navBackground} ${isHomePage && 'fixed'}`}>
+    <nav className={`top-0 z-2 left-0 w-full text-white p-4 duration-300 ${navBackground} ${isHomePage && 'fixed'}`}>
       <div className="max-w-5xl mx-auto flex justify-between items-center">
         <Link href="/" className="text-2xl font-bold tracking-tight hover:text-amber-300 transition-colors">
           AI Real Estate Copy

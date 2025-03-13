@@ -22,10 +22,11 @@ interface Listing {
     };
   }
 
-export default async function ListingPage({ params }: { params: { id: string } }) {
+export default async function ListingPage({ params }: { params: Promise<{ id: string }> }
+) {
   await connectDB();
 
-  const { id } = params;
+  const { id } = await params;
 
   // Find the listing by trackableId (stored in analytics.trackableUrl)
   const user = await User.findOne({
