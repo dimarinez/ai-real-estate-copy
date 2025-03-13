@@ -181,7 +181,7 @@ export default function GenerateListing() {
       return;
     }
 
-    const maxGenerations = subscription === 'pro' ? 25 : subscription === 'basic' ? 5 : 0;
+    const maxGenerations = subscription === 'pro' ? 25 : subscription === 'basic' ? 5 : 1;
     if (generationCount >= maxGenerations) {
       setMessage(`You’ve reached your daily limit of ${maxGenerations} generations. Upgrade your plan or try again tomorrow.`);
       return;
