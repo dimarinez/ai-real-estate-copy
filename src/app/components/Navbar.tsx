@@ -35,7 +35,7 @@ export default function Navbar() {
   const isHomePage = pathname === '/';
   const navBackground = isHomePage && !isScrolled && !isMenuOpen
     ? 'bg-transparent' 
-    : 'bg-gradient-to-r from-blue-600 to-blue-800 shadow-md';
+    : 'bg-blue-700 bg-gradient-to-r from-blue-600 to-blue-800 [-webkit-gradient(linear,_left_top,_right_top,_from(#2563eb),_to(#1e40af))] shadow-md';
 
   if (!isMounted) {
     return (
