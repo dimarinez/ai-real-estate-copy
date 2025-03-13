@@ -7,10 +7,31 @@ import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcrypt';
 import connectDB from '../lib/db'; // Adjusted path based on your earlier setup
-import User from '@/app/models/User'; // Adjusted path to your User model
+import User, { IUser } from '@/app/models/User'; // Adjusted path to your User model
+
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
+      subscriptionStatus: string;
+      isVerified: boolean;
+    };
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    id?: string;
+    subscriptionStatus?: string;
+    isVerified?: boolean;
+  }
+}
 
 // Helper function to transform Mongoose user to NextAuth user
-function toNextAuthUser(dbUser: any): NextAuthUser {
+function toNextAuthUser(dbUser: IUser): NextAuthUser {
   return {
     id: dbUser._id?.toString() || '',
     email: dbUser.email,
