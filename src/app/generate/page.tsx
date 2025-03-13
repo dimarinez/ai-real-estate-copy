@@ -293,7 +293,7 @@ export default function GenerateListing() {
       if (res.ok) {
         setSavedListingsCount((prev) => prev + 1);
         setIsSaved(true);
-        setSaveMessage(`Listing saved successfully! Track it at ${trackableUrl || 'your dashboard'}.`);
+        setSaveMessage(`Listing saved successfully! Track it at https://airealestatecopy.com${trackableUrl || 'your dashboard'}.`);
       } else {
         setSaveMessage(data.error || 'Failed to save listing');
       }

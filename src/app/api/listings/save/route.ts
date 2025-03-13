@@ -41,10 +41,10 @@ export async function POST(req: NextRequest) {
         location, // Add this
         date: new Date(),
         social: social ? {
-          twitter: social.twitter ? (trackableUrl ? `${social.twitter} ${trackableUrl}` : social.twitter) : undefined,
-          instagram: social.instagram ? (trackableUrl ? `${social.instagram} ${trackableUrl}` : social.instagram) : undefined,
-          facebook: social.facebook ? (trackableUrl ? `${social.facebook} ${trackableUrl}` : social.facebook) : undefined,
-          linkedin: social.linkedin ? (trackableUrl ? `${social.linkedin} ${trackableUrl}` : social.linkedin) : undefined,
+          twitter: social.twitter ? (trackableUrl ? `${social.twitter} https://airealestatecopy.com${trackableUrl}` : social.twitter) : undefined,
+          instagram: social.instagram ? (trackableUrl ? `${social.instagram} https://airealestatecopy.com${trackableUrl}` : social.instagram) : undefined,
+          facebook: social.facebook ? (trackableUrl ? `${social.facebook} https://airealestatecopy.com${trackableUrl}` : social.facebook) : undefined,
+          linkedin: social.linkedin ? (trackableUrl ? `${social.linkedin} https://airealestatecopy.com${trackableUrl}` : social.linkedin) : undefined,
         } : undefined,
         analytics: trackableUrl ? {
           views: 0,
