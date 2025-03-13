@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     let trackableUrl = null;
     if (user.subscriptionStatus === 'pro') {
       const uniqueId = Date.now().toString(); // Or use UUID for uniqueness
-      trackableUrl = `https://airealestatecopy.com/listing/${uniqueId}`;
+      trackableUrl = `/listing/${uniqueId}`;
     }
 
     const newListing = {
