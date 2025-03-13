@@ -4,7 +4,7 @@
 import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation'; // For route checking
+import { usePathname } from 'next/navigation';
 import { useSubscription } from '../lib/useSubscription';
 
 export default function Navbar() {
@@ -21,7 +21,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50); // Trigger gradient after 50px scroll
+      setIsScrolled(window.scrollY > 50);
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -31,15 +31,14 @@ export default function Navbar() {
     setIsMenuOpen(!isMenuOpen);
   };
 
-  // Determine navbar background: transparent on homepage unless scrolled
   const isHomePage = pathname === '/';
   const navBackground = isHomePage && !isScrolled && !isMenuOpen
-    ? 'bg-transparent' 
+    ? 'bg-transparent'
     : 'bg-blue-700 bg-gradient-to-r from-blue-600 to-blue-800 [-webkit-gradient(linear,_left_top,_right_top,_from(#2563eb),_to(#1e40af))] shadow-md';
 
   if (!isMounted) {
     return (
-      <nav className={`z-2 top-0 left-0 z-2 w-full text-white p-4 ${navBackground} ${isHomePage && 'fixed'}`}>
+      <nav className={`top-0 left-0 z-20 w-full text-white p-4 ${navBackground} ${isHomePage && 'fixed'}`}>
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <Link href="/" className="text-2xl font-bold tracking-tight hover:text-amber-300 transition-colors">
             AI Real Estate Copy
@@ -70,7 +69,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className={`top-0 z-2 left-0 w-full text-white p-4 duration-300 ${navBackground} ${isHomePage && 'fixed'}`}>
+    <nav className={`top-0 left-0 z-20 w-full text-white p-4 ${navBackground} ${isHomePage && 'fixed'}`}>
       <div className="max-w-5xl mx-auto flex justify-between items-center">
         <Link href="/" className="text-2xl font-bold tracking-tight hover:text-amber-300 transition-colors">
           AI Real Estate Copy
@@ -132,7 +131,7 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="md:hidden absolute top-16 left-0 w-full bg-gradient-to-r from-blue-600 to-blue-800 [-webkit-gradient(linear,_left_top,_right_top,_from(#2563eb),_to(#1e40af))] text-white flex flex-col items-center gap-4 py-4 transition-all duration-300 z-10">
+          <div className="md:hidden absolute top-16 left-0 w-full bg-blue-700 bg-gradient-to-r from-blue-600 to-blue-800 [-webkit-gradient(linear,_left_top,_right_top,_from(#2563eb),_to(#1e40af))] text-white flex flex-col items-center gap-4 py-4 duration-300 z-30">
             {status === 'loading' || subscription === null ? null : session ? (
               <>
                 <Link
