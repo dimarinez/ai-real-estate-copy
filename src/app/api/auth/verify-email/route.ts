@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     await User.updateOne(
       { _id: user._id },
-      { isVerified: true, verificationToken: null }
+      { isVerified: true, $unset: { verificationToken: "" } }
     );
 
     return NextResponse.json({ message: 'Email verified successfully' }, { status: 200 });

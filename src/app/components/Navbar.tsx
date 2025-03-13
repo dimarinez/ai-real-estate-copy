@@ -132,7 +132,7 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="md:hidden absolute top-16 left-0 w-full bg-gradient-to-r from-blue-600 to-blue-800 text-white flex flex-col items-center gap-4 py-4 transition-all duration-300 z-10">
+          <div className="md:hidden absolute top-16 left-0 w-full bg-gradient-to-r from-blue-600 to-blue-800 [-webkit-gradient(linear,_left_top,_right_top,_from(#2563eb),_to(#1e40af))] text-white flex flex-col items-center gap-4 py-4 transition-all duration-300 z-10">
             {status === 'loading' || subscription === null ? null : session ? (
               <>
                 <Link

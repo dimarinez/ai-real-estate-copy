@@ -119,7 +119,7 @@ export default function Dashboard() {
         {/* Header */}
         <header className="mb-12 text-center">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Your Listings Dashboard</h1>
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-gray-100 to-gray-200 px-4 py-2 rounded-full shadow-sm">
+          <div className="inline-flex items-center gap-2 bg-gray-100 bg-gradient-to-r from-gray-100 to-gray-200 [-webkit-gradient(linear,_left_top,_right_top,_from(#f3f4f6),_to(#e5e7eb))] px-4 py-2 rounded-full shadow-sm">
             <span className="text-lg text-gray-700">Subscription:</span>
             <span
               className={`font-semibold text-lg ${
@@ -154,7 +154,7 @@ export default function Dashboard() {
             <p className="text-lg text-gray-600">No saved listings yet.</p>
             <a
               href="/generate"
-              className="mt-4 inline-block bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-6 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-md"
+              className="mt-4 inline-block bg-blue-600 bg-gradient-to-r from-blue-600 to-blue-700 [-webkit-gradient(linear,_left_top,_right_top,_from(#2563eb),_to(#1d4ed8))] text-white py-2 px-6 rounded-lg hover:bg-blue-700 hover:[-webkit-gradient(linear,_left_top,_right_top,_from(#1d4ed8),_to(#1e3a8aDV))] transition shadow-md"
             >
               Generate Your First Listing
             </a>
@@ -335,7 +335,7 @@ export default function Dashboard() {
           <div className="mt-10 text-center">
             <button
               onClick={loadMore}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-6 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-md"
+              className="bg-blue-600 bg-gradient-to-r from-blue-600 to-blue-700 [-webkit-gradient(linear,_left_top,_right_top,_from(#2563eb),_to(#1d4ed8))] text-white py-2 px-6 rounded-lg hover:bg-blue-700 hover:[-webkit-gradient(linear,_left_top,_right_top,_from(#1d4ed8),_to(#1e3a8aDV))] transition shadow-md"
             >
               Load More
             </button>

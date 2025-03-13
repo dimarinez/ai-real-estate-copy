@@ -486,7 +486,7 @@ export default function GenerateListing() {
           <button
             onClick={handleGenerate}
             disabled={loading}
-            className="w-full py-3 px-6 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-blue-800 disabled:bg-gray-400 disabled:from-gray-400 disabled:to-gray-400 transition-all shadow-md"
+            className="w-full py-3 px-6 bg-blue-600 bg-gradient-blue text-white rounded-lg font-semibold hover:bg-blue-700 hover:bg-gradient-blue-hover disabled:bg-gray-400 disabled:from-gray-400 disabled:to-gray-400 transition-all shadow-md"
           >
             {loading ? 'Generating…' : 'Generate Listing'}
           </button>
