@@ -5,8 +5,8 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-blue-600 to-blue-800 text-white py-28 px-4 sm:px-6 lg:px-8 home-hero">
-        <div className="bg-gradient-to-r from-blue-600 to-blue-800 absolute inset-0 opacity-75"></div>
+      <section className="relative bg-blue-700 bg-gradient-to-r from-blue-600 to-blue-800 [-webkit-gradient(linear,_left_top,_right_top,_from(#2563eb),_to(#1e40af))] text-white py-28 px-4 sm:px-6 lg:px-8 home-hero">
+        <div className="bg-blue-700 bg-gradient-to-r from-blue-600 to-blue-800 [-webkit-gradient(linear,_left_top,_right_top,_from(#2563eb),_to(#1e40af))] absolute inset-0 opacity-75"></div>
         <div className="max-w-5xl mx-auto text-center relative">
         <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight tracking-tight">
             Turn Your Photos into Listings That Sell
