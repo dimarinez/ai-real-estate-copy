@@ -39,6 +39,9 @@ export async function POST(req: NextRequest) {
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/pricing`,
       customer_email: user.email,
       allow_promotion_codes: true,
+      subscription_data: {
+        trial_period_days: plan === 'pro' ? 30 : 0,
+      },
       metadata: {
         userId: user._id.toString(),
         chosenPlan: plan,

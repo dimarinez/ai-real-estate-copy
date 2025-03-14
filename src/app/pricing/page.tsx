@@ -1,4 +1,3 @@
-// src/app/Pricing.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,9 +13,7 @@ export default function Pricing() {
     if (status === 'authenticated' && session?.user) {
       async function fetchSubscription() {
         try {
-          const res = await fetch('/api/user/subscription', {
-            headers: { 'Content-Type': 'application/json' },
-          });
+          const res = await fetch('/api/user/subscription');
           const data = await res.json();
           setSubscription(data.subscriptionStatus || 'free');
         } catch (error) {
@@ -26,7 +23,7 @@ export default function Pricing() {
       }
       fetchSubscription();
     } else if (status === 'unauthenticated') {
-      setSubscription('free'); // Show free tier for unauthenticated users
+      setSubscription('free');
     }
   }, [session, status]);
 
@@ -40,11 +37,8 @@ export default function Pricing() {
 
     const { url } = await res.json();
     setLoading(false);
-    if (url) {
-      window.location.href = url;
-    } else {
-      console.error('No checkout URL returned');
-    }
+    if (url) window.location.href = url;
+    else console.error('No checkout URL returned');
   };
 
   if (status === 'loading' || subscription === null) {
@@ -61,8 +55,12 @@ export default function Pricing() {
         <div className="text-center">
           <h1 className="text-4xl font-bold text-gray-800 mb-4">You’re a Pro User!</h1>
           <p className="text-lg text-gray-600 max-w-md mx-auto">
-            Unlock the full power of our AI with optimized social posts, link analytics, and unlimited listing potential.
+            Enjoy your 1-month free trial! Unlock advanced AI features and analytics until{' '}
+            {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}.
           </p>
+          <Link href="/dashboard" className="mt-6 inline-block text-blue-600 hover:underline">
+            Go to Dashboard
+          </Link>
         </div>
       </div>
     );
@@ -73,7 +71,7 @@ export default function Pricing() {
       <div className="max-w-4xl w-full">
         <h1 className="text-4xl font-bold text-gray-800 mb-4 text-center">Elevate Your Real Estate Game</h1>
         <p className="text-lg text-gray-600 mb-10 text-center max-w-2xl mx-auto">
-          Pick a plan to craft standout listings and drive engagement with AI-powered precision.
+          Pick a plan to craft standout listings with AI-powered precision. Pros get a 1-month free trial!
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {subscription === 'free' && (
@@ -82,9 +80,7 @@ export default function Pricing() {
               <p className="text-4xl font-bold text-blue-600 mb-4">
                 $29<span className="text-base text-gray-500">/mo</span>
               </p>
-              <p className="text-gray-600 mb-6">
-                Boost your listings with essential AI tools and social media reach.
-              </p>
+              <p className="text-gray-600 mb-6">Essential AI tools for your listings.</p>
               <ul className="text-gray-700 mb-8 space-y-3">
                 <li className="flex items-center gap-2">
                   <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
@@ -130,13 +126,16 @@ export default function Pricing() {
             </div>
           )}
           {(subscription === 'free' || subscription === 'basic') && (
-            <div className="p-6 bg-white rounded-xl shadow-lg border border-green-200 hover:shadow-xl transition-shadow duration-300">
+            <div className="p-6 bg-white rounded-xl shadow-lg border border-green-200 hover:shadow-xl transition-shadow duration-300 relative">
+              <span className="absolute top-4 right-4 bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-1 rounded-full">
+                1 Month Free Trial
+              </span>
               <h2 className="text-2xl font-semibold text-gray-800 mb-2">Pro</h2>
               <p className="text-4xl font-bold text-green-600 mb-4">
                 $179<span className="text-base text-gray-500">/mo</span>
               </p>
               <p className="text-gray-600 mb-6">
-                Dominate the market with advanced AI and analytics.
+                Try Pro free for 30 days, then dominate with advanced AI and analytics.
               </p>
               <ul className="text-gray-700 mb-8 space-y-3">
                 <li className="flex items-center gap-2">
@@ -170,14 +169,14 @@ export default function Pricing() {
                   disabled={loading}
                   className="w-full bg-green-500 hover:bg-green-700 text-white py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transition-all duration-200 disabled:bg-gray-400 disabled:shadow-none"
                 >
-                  {loading ? 'Processing...' : 'Go Pro'}
+                  {loading ? 'Processing...' : 'Start Free Trial'}
                 </button>
               ) : (
                 <Link
                   href="/auth/signin"
                   className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg font-semibold shadow-md hover:shadow-lg transition-all duration-200 text-center block"
                 >
-                  Sign In to Subscribe
+                  Sign In for Free Trial
                 </Link>
               )}
             </div>
@@ -189,7 +188,7 @@ export default function Pricing() {
             <Link href="/auth/signup" className="text-blue-600 hover:text-blue-800 font-semibold">
               Sign up
             </Link>{' '}
-            to get started!
+            to claim your free trial!
           </p>
         )}
       </div>

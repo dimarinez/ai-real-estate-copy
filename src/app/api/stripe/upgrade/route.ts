@@ -25,16 +25,24 @@ export async function POST() {
 
     try {      
         const checkoutSession = await stripe.checkout.sessions.create({
-          payment_method_types: ["card"],
-          mode: "subscription",
-          line_items: [{ price: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PRO, quantity: 1 }],
-          success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-          cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/pricing`,
-          customer_email: user.email,
-          metadata: {
-            userId: user._id.toString(),
-            chosenPlan: 'pro',
-          },
+            payment_method_types: ["card"],
+            mode: "subscription",
+            line_items: [
+                {
+                price: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PRO,
+                quantity: 1,
+                },
+            ],
+            subscription_data: {
+                trial_period_days: 30,
+            },
+            success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/pricing`,
+            customer_email: user.email,
+            metadata: {
+                userId: user._id.toString(),
+                chosenPlan: 'pro',
+            },
         });
 
         return NextResponse.json({ url: checkoutSession.url });

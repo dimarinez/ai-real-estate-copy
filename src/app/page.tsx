@@ -1,4 +1,3 @@
-// src/app/page.tsx
 import Link from 'next/link';
 
 export default function Home() {
@@ -8,18 +7,21 @@ export default function Home() {
       <section className="relative bg-blue-700 bg-gradient-to-r from-blue-600 to-blue-800 [-webkit-gradient(linear,_left_top,_right_top,_from(#2563eb),_to(#1e40af))] text-white py-28 px-4 sm:px-6 lg:px-8 home-hero">
         <div className="bg-blue-700 bg-gradient-to-r from-blue-600 to-blue-800 [-webkit-gradient(linear,_left_top,_right_top,_from(#2563eb),_to(#1e40af))] absolute inset-0 opacity-75"></div>
         <div className="max-w-5xl mx-auto text-center relative">
-        <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight tracking-tight">
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight tracking-tight">
             Turn Your Photos into Listings That Sell
           </h1>
-          <p className="text-xl md:text-2xl text-gray-100 mb-10 max-w-3xl mx-auto">
+          <p className="text-xl md:text-2xl text-gray-100 mb-6 max-w-3xl mx-auto">
             Snap a photo, and let your personal AI copywriter craft stunning listings and scroll-stopping social posts—instantly, professionally, yours to own.
+          </p>
+          <p className="text-lg text-amber-200 mb-10 font-semibold">
+            Sign up today for a <span className="underline">1-month free trial</span> of Pro features!
           </p>
           <div className="flex flex-col md:flex-row gap-4 justify-center">
             <Link
               href="/auth/signup"
               className="bg-amber-500 hover:bg-amber-600 text-white px-8 py-4 rounded-lg font-semibold text-lg shadow-md hover:shadow-lg transition-all duration-200"
             >
-              Claim Your AI Now
+              Start Your Free Trial
             </Link>
             <Link
               href="/pricing"
@@ -48,7 +50,7 @@ export default function Home() {
               </div>
               <h3 className="text-xl font-semibold text-gray-800 mb-3">Listings That Shine</h3>
               <p className="text-gray-600 leading-relaxed">
-                Upload your photos, and watch your AI copywriter transform them into vivid, polished descriptions that make properties irresistible.
+                Upload your photos, and watch your AI craft vivid, polished descriptions that make properties irresistible. <span className="text-green-600 font-medium">Pro: Save up to 500 listings!</span>
               </p>
             </div>
             <div className="p-8 bg-gray-50 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
@@ -61,7 +63,7 @@ export default function Home() {
               </div>
               <h3 className="text-xl font-semibold text-gray-800 mb-3">Social Posts That Pop</h3>
               <p className="text-gray-600 leading-relaxed">
-                From one photo, get tailored posts for every platform—crafted by your AI pro to spark likes, shares, and inquiries.
+                From one photo, get tailored posts for every platform—crafted to spark engagement. <span className="text-green-600 font-medium">Pro: Optimized posts + analytics!</span>
               </p>
             </div>
             <div className="p-8 bg-gray-50 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
@@ -74,7 +76,7 @@ export default function Home() {
               </div>
               <h3 className="text-xl font-semibold text-gray-800 mb-3">Pro Writing, Zero Effort</h3>
               <p className="text-gray-600 leading-relaxed">
-                Skip the writer’s block—your AI delivers expert-level content in seconds, as if you had a pro on speed dial.
+                Skip writer’s block—your AI delivers expert content in seconds. <span className="text-green-600 font-medium">Pro: 25 generations/day—try it free for 30 days!</span>
               </p>
             </div>
           </div>
@@ -85,16 +87,16 @@ export default function Home() {
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-100">
         <div className="max-w-6xl mx-auto text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
-            Your Listings Deserve a Pro—Start Now!
+            Unlock Pro Features with a 1-Month Free Trial
           </h2>
           <p className="text-lg text-gray-600 mb-10 max-w-2xl mx-auto">
-            Upload a photo, and let your AI copywriter work its magic. Stunning listings, killer social posts—done in a flash.
+            Upload a photo, and let your AI copywriter work its magic. Stunning listings, killer social posts—free for 30 days with Pro.
           </p>
           <Link
-            href="/generate"
+            href="/auth/signup"
             className="bg-blue-600 hover:bg-blue-700 text-white px-10 py-4 rounded-lg font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
           >
-            Try It Free Today
+            Start Your Free Trial Today
           </Link>
         </div>
       </section>
