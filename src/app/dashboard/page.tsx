@@ -300,7 +300,7 @@ export default function Dashboard() {
                             content ? (
                               <div key={platform} className="space-y-1">
                                 <p className="font-medium capitalize text-gray-700">{platform}:</p>
-                                <p className="text-gray-600 leading-relaxed">{content}</p>
+                                <p className="text-gray-600 leading-relaxed break-all md:break-normal">{content}</p>
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();

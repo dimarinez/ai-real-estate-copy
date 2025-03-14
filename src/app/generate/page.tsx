@@ -290,10 +290,13 @@ export default function GenerateListing() {
       });
 
       const data = await res.json();
+      const message = trackableUrl 
+  ? `Track it at ${process.env.NEXT_PUBLIC_URL}${trackableUrl}` 
+  : 'Track it at your dashboard';
       if (res.ok) {
         setSavedListingsCount((prev) => prev + 1);
         setIsSaved(true);
-        setSaveMessage(`Listing saved successfully! Track it at https://airealestatecopy.com${trackableUrl || 'your dashboard'}.`);
+        setSaveMessage(`Listing saved successfully! ${message}.`);
       } else {
         setSaveMessage(data.error || 'Failed to save listing');
       }
@@ -510,20 +513,30 @@ export default function GenerateListing() {
               </button>
             </div>
             {saveMessage && (
-              <div className={`mb-4 p-4 rounded-lg border flex items-center gap-2 ${getMessageStyles(saveMessage)}`}>
+              <div
+                className={`mb-4 p-4 rounded-lg border flex flex-col sm:flex-row items-start sm:items-center gap-2 ${getMessageStyles(
+                  saveMessage
+                )}`}
+              >
                 {saveMessage.includes('successfully') ? (
-                  <FaCheckCircle className="text-green-600" />
+                  <FaCheckCircle className="text-green-600 shrink-0" />
                 ) : (
-                  <FaExclamationCircle className="text-red-600" />
+                  <FaExclamationCircle className="text-red-600 shrink-0" />
                 )}
-                <p className="flex-1">{saveMessage}</p>
+                <p className="flex-1 break-all md:break-normal text-sm sm:text-base">{saveMessage}</p>
                 {saveMessage.includes('limit') && (
-                  <a href="/pricing" className="text-blue-600 hover:underline">
+                  <a
+                    href="/pricing"
+                    className="text-blue-600 hover:underline whitespace-nowrap mt-2 sm:mt-0"
+                  >
                     Upgrade Now
                   </a>
                 )}
                 {saveMessage.includes('saved') && saveMessage.includes('Track') && (
-                  <a href="/dashboard" className="text-blue-600 hover:underline">
+                  <a
+                    href="/dashboard"
+                    className="text-blue-600 hover:underline whitespace-nowrap mt-2 sm:mt-0"
+                  >
                     Go to Dashboard
                   </a>
                 )}

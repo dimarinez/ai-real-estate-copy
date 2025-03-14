@@ -41,15 +41,15 @@ export async function POST(req: NextRequest) {
         location, // Add this
         date: new Date(),
         social: social ? {
-          twitter: social.twitter ? (trackableUrl ? `${social.twitter} https://airealestatecopy.com${trackableUrl}` : social.twitter) : undefined,
-          instagram: social.instagram ? (trackableUrl ? `${social.instagram} https://airealestatecopy.com${trackableUrl}` : social.instagram) : undefined,
-          facebook: social.facebook ? (trackableUrl ? `${social.facebook} https://airealestatecopy.com${trackableUrl}` : social.facebook) : undefined,
-          linkedin: social.linkedin ? (trackableUrl ? `${social.linkedin} https://airealestatecopy.com${trackableUrl}` : social.linkedin) : undefined,
+          twitter: social.twitter ? (trackableUrl ? `${social.twitter} ${process.env.NEXT_PUBLIC_URL}${trackableUrl}` : social.twitter) : undefined,
+          instagram: social.instagram ? (trackableUrl ? `${social.instagram} ${process.env.NEXT_PUBLIC_URL}${trackableUrl}` : social.instagram) : undefined,
+          facebook: social.facebook ? (trackableUrl ? `${social.facebook} ${process.env.NEXT_PUBLIC_URL}${trackableUrl}` : social.facebook) : undefined,
+          linkedin: social.linkedin ? (trackableUrl ? `${social.linkedin} ${process.env.NEXT_PUBLIC_URL}${trackableUrl}` : social.linkedin) : undefined,
         } : undefined,
         analytics: trackableUrl ? {
           views: 0,
           trackableUrl,
-          redirectUrl: redirectUrl || 'https://airealestatecopy.com/contact-agent',
+          redirectUrl: redirectUrl || `${process.env.NEXT_PUBLIC_URL}/contact-agent`,
         } : undefined,
     };
 
