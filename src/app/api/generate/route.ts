@@ -234,6 +234,7 @@ export async function POST(req: NextRequest) {
   try {
     // Build the amenities string dynamically, only including non-empty genericMetrics
     const amenitiesList = Object.entries(genericMetrics)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       .filter(([_, value]) => value !== '')
       .map(([key, value]) => `${value} (${key})`)
       .join(', ');
