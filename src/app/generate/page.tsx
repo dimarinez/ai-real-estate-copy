@@ -1,4 +1,3 @@
-// src/app/components/GenerateListing.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -32,11 +31,30 @@ type SocialContent = {
   linkedin: string;
 };
 
+type GenericMetrics = {
+  cafe: string;
+  park: string;
+  grocery: string;
+  restaurant: string;
+  school: string;
+  transit: string;
+};
+
+type SpecificMetrics = {
+  cafe: string[];
+  park: string[];
+  grocery: string[];
+  restaurant: string[];
+  school: string[];
+  transit: string[];
+};
+
 export default function GenerateListing() {
   const [photos, setPhotos] = useState<File[]>([]);
   const [tone, setTone] = useState('default');
   const [language, setLanguage] = useState('English');
   const [location, setLocation] = useState('');
+  const [includeInsights, setIncludeInsights] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [generatedText, setGeneratedText] = useState('');
@@ -46,15 +64,17 @@ export default function GenerateListing() {
     facebook: '',
     linkedin: '',
   });
-  const [message, setMessage] = useState(''); // General messages (e.g., errors)
-  const [saveMessage, setSaveMessage] = useState(''); // Save-specific feedback
-  const [isSaved, setIsSaved] = useState(false); // Track if this listing is saved
+  const [genericMetrics, setGenericMetrics] = useState<GenericMetrics | null>(null);
+  const [specificMetrics, setSpecificMetrics] = useState<SpecificMetrics | null>(null);
+  const [message, setMessage] = useState('');
+  const [saveMessage, setSaveMessage] = useState('');
+  const [isSaved, setIsSaved] = useState(false);
   const [subscription, setSubscription] = useState<string | null>(null);
   const [savedListingsCount, setSavedListingsCount] = useState(0);
   const [generationCount, setGenerationCount] = useState(0);
   const [copied, setCopied] = useState<string | null>(null);
   const [redirectUrl, setRedirectUrl] = useState('');
-  const [isMounted, setIsMounted] = useState(false); // Hydration safety
+  const [isMounted, setIsMounted] = useState(false);
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS || '',
@@ -83,7 +103,6 @@ export default function GenerateListing() {
   }, []);
 
   const handleFileChange = async (acceptedFiles: File[]) => {
-    // ... (unchanged, keep existing logic)
     if (!acceptedFiles || acceptedFiles.length === 0) {
       setMessage('No files selected.');
       return;
@@ -181,9 +200,12 @@ export default function GenerateListing() {
   });
 
   const handleGenerate = async () => {
-    // ... (unchanged, keep existing logic)
     if (photos.length === 0) {
       setMessage('Please upload at least one property photo.');
+      return;
+    }
+    if (includeInsights && !location) {
+      setMessage('Please enter a property location to include location insights.');
       return;
     }
 
@@ -197,9 +219,11 @@ export default function GenerateListing() {
     setMessage('');
     setGeneratedText('');
     setSocialContent({ twitter: '', instagram: '', facebook: '', linkedin: '' });
+    setGenericMetrics(null);
+    setSpecificMetrics(null);
     setCopied(null);
     setRedirectUrl('');
-    setIsSaved(false); // Reset save state on new generation
+    setIsSaved(false);
     setSaveMessage('');
 
     setLoadingMessage('Uploading photos…');
@@ -232,6 +256,7 @@ export default function GenerateListing() {
           imageUrls,
           tone,
           language,
+          location: includeInsights ? location : undefined,
         }),
       });
 
@@ -243,6 +268,8 @@ export default function GenerateListing() {
         if (subscription !== 'free') {
           setSocialContent(generateData.social || { twitter: '', instagram: '', facebook: '', linkedin: '' });
         }
+        setGenericMetrics(generateData.genericMetrics || null);
+        setSpecificMetrics(generateData.specificMetrics || null);
         setGenerationCount((prev) => prev + 1);
         setMessage(
           subscription === 'free'
@@ -283,16 +310,18 @@ export default function GenerateListing() {
         body: JSON.stringify({
           title: location || `${generatedText.split(' ').slice(0, 5).join(' ')} Listing`,
           description: generatedText,
-          location,
+          location: includeInsights ? location : undefined,
           social: subscription !== 'free' ? socialContent : undefined,
           analytics: subscription === 'pro' ? { trackableUrl, redirectUrl, views: 0 } : undefined,
+          genericMetrics: includeInsights ? genericMetrics : undefined,
+          specificMetrics: includeInsights ? specificMetrics : undefined,
         }),
       });
 
       const data = await res.json();
-      const message = trackableUrl 
-  ? `Track it at ${process.env.NEXT_PUBLIC_URL}${trackableUrl}` 
-  : 'Track it at your dashboard';
+      const message = trackableUrl
+        ? `Track it at ${process.env.NEXT_PUBLIC_URL}${trackableUrl}`
+        : 'Track it at your dashboard';
       if (res.ok) {
         setSavedListingsCount((prev) => prev + 1);
         setIsSaved(true);
@@ -322,7 +351,8 @@ export default function GenerateListing() {
       msg.includes('save listing') ||
       msg.includes('generate content') ||
       msg.includes('camera shots') ||
-      msg.includes('already been saved')
+      msg.includes('already been saved') ||
+      msg.includes('location')
     ) {
       return 'bg-red-50 text-red-700 border-red-200';
     } else {
@@ -330,7 +360,6 @@ export default function GenerateListing() {
     }
   };
 
-  // Hydration-safe initial render
   if (!isMounted || !isLoaded || subscription === null) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -366,7 +395,8 @@ export default function GenerateListing() {
               message.includes('process') ||
               message.includes('save listing') ||
               message.includes('generate content') ||
-              message.includes('camera shots') ? (
+              message.includes('camera shots') ||
+              message.includes('location') ? (
               <FaExclamationCircle className="text-red-600" />
             ) : (
               <FaCheckCircle className="text-blue-600" />
@@ -461,7 +491,7 @@ export default function GenerateListing() {
 
           <div className="relative">
             <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-              Location
+              Location (Required for Insights)
             </label>
             <Autocomplete
               onLoad={(autocomplete) => {
@@ -484,6 +514,22 @@ export default function GenerateListing() {
                 placeholder="e.g., 12345 Real Estate, San Diego, CA"
               />
             </Autocomplete>
+          </div>
+
+          <div className="relative">
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={includeInsights}
+                onChange={(e) => setIncludeInsights(e.target.checked)}
+                disabled={loading}
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50"
+              />
+              <span className="text-sm font-medium text-gray-700">Include Location Insights</span>
+            </label>
+            <p className="mt-1 text-xs text-gray-500">
+              Add nearby amenities (cafes, parks, etc.) to your listing based on the location.
+            </p>
           </div>
 
           <button
@@ -552,6 +598,45 @@ export default function GenerateListing() {
             </button>
           </div>
 
+          {includeInsights && specificMetrics && location && (
+            <div className="mb-6">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-4">Location Insights</h2>
+              <p className="text-gray-500 text-sm mb-2">Nearby amenities within 1km of {location}:</p>
+              <ul className="space-y-2 text-gray-600">
+                {specificMetrics.cafe.length > 0 && (
+                  <li>
+                    <span className="font-medium">Cafes:</span> {specificMetrics.cafe.join(', ')}
+                  </li>
+                )}
+                {specificMetrics.park.length > 0 && (
+                  <li>
+                    <span className="font-medium">Parks:</span> {specificMetrics.park.join(', ')}
+                  </li>
+                )}
+                {specificMetrics.grocery.length > 0 && (
+                  <li>
+                    <span className="font-medium">Grocery Stores:</span> {specificMetrics.grocery.join(', ')}
+                  </li>
+                )}
+                {specificMetrics.restaurant.length > 0 && (
+                  <li>
+                    <span className="font-medium">Restaurants:</span> {specificMetrics.restaurant.join(', ')}
+                  </li>
+                )}
+                {specificMetrics.school.length > 0 && (
+                  <li>
+                    <span className="font-medium">Schools:</span> {specificMetrics.school.join(', ')}
+                  </li>
+                )}
+                {specificMetrics.transit.length > 0 && (
+                  <li>
+                    <span className="font-medium">Transit:</span> {specificMetrics.transit.join(', ')}
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
+
           {subscription === 'pro' && (
             <div className="mb-6">
               <label htmlFor="redirectUrl" className="block text-sm font-medium text-gray-700 mb-1">
@@ -562,7 +647,7 @@ export default function GenerateListing() {
                 type="url"
                 value={redirectUrl}
                 onChange={(e) => setRedirectUrl(e.target.value)}
-                disabled={isSaved} // Disable after saving to prevent confusion
+                disabled={isSaved}
                 className="w-full p-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-200 disabled:text-gray-400 transition-all"
                 placeholder="https://zillow.com/homes/12345"
               />
