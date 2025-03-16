@@ -219,7 +219,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { imageUrls, tone, language, location } = body;
+  const { imageUrls, tone, language, location, exampleListing } = body;
 
   if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
     return NextResponse.json({ error: 'At least one photo URL is required.' }, { status: 400 });
@@ -227,17 +227,33 @@ export async function POST(req: NextRequest) {
 
   const effectiveTone = tone || 'default';
   const effectiveLanguage = language || 'English';
-  const effectiveMaxWords = user.subscriptionStatus === 'free' ? 100 : 200;
+  const effectiveMaxWords = user.subscriptionStatus === 'free' ? 150 : 250;
 
   const { genericMetrics, specificMetrics } = await fetchGeoapifyMetrics(location);
 
+  const exampleText = exampleListing ? exampleListing.trim() : '';
+
   try {
-    // Build the amenities string dynamically, only including non-empty genericMetrics
     const amenitiesList = Object.entries(genericMetrics)
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       .filter(([_, value]) => value !== '')
       .map(([key, value]) => `${value} (${key})`)
       .join(', ');
+
+      const prompt = exampleText
+      ? `Here is an example real estate listing for style reference only: "${exampleText}". Analyze these ${imageUrls.length} photos and generate a single real estate listing in ${effectiveLanguage}. Match the writing style, tone, and approximate word count of the example, but base all factual content solely on the provided photos and the following data (do not invent details or reuse specifics from the example). ${
+          location && amenitiesList ? `Incorporate these nearby amenities within 1km: ${amenitiesList}. ` : ''
+        }Combine all details into a captivating description.${
+          user.subscriptionStatus !== 'free'
+            ? ` Then, generate social media posts${location && amenitiesList ? ' including a few of these amenities' : ''}: Twitter (25 words max), Instagram (30 words max), Facebook (50 words max), LinkedIn (75 words max). Match the style and tone of the example listing, using only the provided photos and data for facts. Separate each section with "---" and do not include platform names or headers—just the raw text.`
+            : ''
+        }`
+      : `Analyze these ${imageUrls.length} photos and generate a single ${effectiveTone} real estate listing in ${effectiveLanguage}, max ${effectiveMaxWords} words. ${
+          location && amenitiesList ? `Incorporate these nearby amenities within 1km: ${amenitiesList}. ` : ''
+        }Combine all details into a captivating description.${
+          user.subscriptionStatus !== 'free'
+            ? ` Then, generate social media posts${location && amenitiesList ? ' including a few of these amenities' : ''}: Twitter (25 words max), Instagram (30 words max), Facebook (50 words max), LinkedIn (75 words max). Separate each section with "---" and do not include platform names or headers—just the raw text.`
+            : ''
+        }`;
 
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
@@ -247,15 +263,7 @@ export async function POST(req: NextRequest) {
           content: [
             {
               type: 'text',
-              text: `Analyze these ${imageUrls.length} photos and generate a single ${effectiveTone} real estate listing in ${effectiveLanguage}, max ${effectiveMaxWords} words. ${
-                location && amenitiesList
-                  ? `Incorporate these nearby amenities within 1km: ${amenitiesList}. `
-                  : ''
-              }Combine all details into a captivating description.${
-                user.subscriptionStatus !== 'free'
-                  ? ` Then, generate social media posts${location && amenitiesList ? ' including a few of these amenities' : ''}: Twitter (25 words max), Instagram (30 words max), Facebook (50 words max), LinkedIn (75 words max). Separate each section with "---" and do not include platform names or headers—just the raw text.`
-                  : ''
-              }`,
+              text: prompt,
             },
             ...imageUrls.map((url: string) => ({
               type: 'image_url' as const,

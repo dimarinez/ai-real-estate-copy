@@ -55,6 +55,7 @@ export default function GenerateListing() {
   const [language, setLanguage] = useState('English');
   const [location, setLocation] = useState('');
   const [includeInsights, setIncludeInsights] = useState(false);
+  const [exampleListing, setExampleListing] = useState(''); // Text-only example
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [generatedText, setGeneratedText] = useState('');
@@ -257,6 +258,7 @@ export default function GenerateListing() {
           tone,
           language,
           location: includeInsights ? location : undefined,
+          exampleListing: exampleListing || undefined,
         }),
       });
 
@@ -447,7 +449,7 @@ export default function GenerateListing() {
                 id="tone"
                 value={tone}
                 onChange={(e) => setTone(e.target.value)}
-                disabled={loading}
+                disabled={loading || exampleListing}
                 className="w-full p-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-200 disabled:text-gray-400 transition-all"
               >
                 <option value="default">Default</option>
@@ -455,6 +457,9 @@ export default function GenerateListing() {
                 <option value="casual">Casual</option>
                 <option value="luxury">Luxury</option>
               </select>
+              {exampleListing && (
+                <p className="mt-1 text-xs text-gray-500">Tone overridden by example listing.</p>
+              )}
             </div>
           )}
 
@@ -514,6 +519,24 @@ export default function GenerateListing() {
                 placeholder="e.g., 12345 Real Estate, San Diego, CA"
               />
             </Autocomplete>
+          </div>
+
+          <div className="relative">
+            <label htmlFor="exampleListing" className="block text-sm font-medium text-gray-700 mb-1">
+              Example Listing Text (Optional)
+            </label>
+            <textarea
+              id="exampleListing"
+              value={exampleListing}
+              onChange={(e) => setExampleListing(e.target.value)}
+              disabled={loading}
+              className="w-full p-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-200 disabled:text-gray-400 transition-all"
+              placeholder="Paste listing text to mimic its word count, style, and tone (e.g., from Zillow)"
+              rows={4}
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Enter text to match its word count, style, and tone. Only the format will be copied, not the details.
+            </p>
           </div>
 
           <div className="relative">
