@@ -235,7 +235,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const amenitiesList = Object.entries(genericMetrics)
-      .filter(([_, value]) => value !== '')
+      .filter(([, value]) => value !== '')
       .map(([key, value]) => `${value} (${key})`)
       .join(', ');
 
