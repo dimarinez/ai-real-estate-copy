@@ -449,7 +449,7 @@ export default function GenerateListing() {
                 id="tone"
                 value={tone}
                 onChange={(e) => setTone(e.target.value)}
-                disabled={loading || exampleListing}
+                disabled={loading || exampleListing.length > 0}
                 className="w-full p-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-200 disabled:text-gray-400 transition-all"
               >
                 <option value="default">Default</option>
