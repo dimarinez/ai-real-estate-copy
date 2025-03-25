@@ -11,7 +11,7 @@ export default function Home() {
             Turn Your Photos into Listings That Sell
           </h1>
           <p className="text-xl md:text-2xl text-gray-100 mb-6 max-w-3xl mx-auto">
-            Snap a photo, and let your personal AI copywriter craft stunning listings and scroll-stopping social posts—instantly, professionally, yours to own.
+            Snap photos, and let your personal AI copywriter craft stunning listings and scroll-stopping social posts—instantly, professionally, yours to own.
           </p>
           <p className="text-lg text-amber-200 mb-10 font-semibold">
             Sign up today for a <span className="underline">1-month free trial</span> of Pro features!
@@ -63,7 +63,7 @@ export default function Home() {
               </div>
               <h3 className="text-xl font-semibold text-gray-800 mb-3">Social Posts That Pop</h3>
               <p className="text-gray-600 leading-relaxed">
-                From one photo, get tailored posts for every platform—crafted to spark engagement. <span className="text-green-600 font-medium">Pro: Optimized posts + analytics!</span>
+                Get tailored posts for every platform (Instagram, Linkedin, X, and Facebook)—crafted to spark engagement. <span className="text-green-600 font-medium">Pro: Optimized posts + analytics!</span>
               </p>
             </div>
             <div className="p-8 bg-gray-50 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
@@ -90,7 +90,7 @@ export default function Home() {
             Unlock Pro Features with a 1-Month Free Trial
           </h2>
           <p className="text-lg text-gray-600 mb-10 max-w-2xl mx-auto">
-            Upload a photo, and let your AI copywriter work its magic. Stunning listings, killer social posts—free for 30 days with Pro.
+            Upload photos, and let your AI copywriter work its magic. Stunning listings, killer social posts—free for 30 days with Pro.
           </p>
           <Link
             href="/auth/signup"

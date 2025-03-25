@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./styles/globals.css";
 import SessionProviderWrapper from './components/SessionProviderWrapper';
 import Navbar from './components/Navbar';
+import LinkedInInsightTag from './components/LinkedInInsightTag';
 
 const inter = Inter({
   variable: "--font-inter",
@@ -34,7 +35,8 @@ export default function RootLayout({
           <footer className="p-4 text-center text-gray-500">
           © {new Date().getFullYear()} AI Real Estate Copy. All rights reserved.
           </footer>
-        </SessionProviderWrapper>
+        </SessionProviderWrapper> 
+        <LinkedInInsightTag />
       </body>
     </html>
   );
