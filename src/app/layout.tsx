@@ -1,3 +1,5 @@
+// app/layout.tsx
+import React from "react"; // Add this import
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./styles/globals.css";
@@ -26,16 +28,27 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${inter.variable} antialiased`}
-      >
+      <head>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-YE24MELHFK"></script>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-YE24MELHFK');
+            `,
+          }}
+        />
+      </head>
+      <body className={`${inter.variable} antialiased`}>
         <SessionProviderWrapper>
           <Navbar />
           {children}
           <footer className="p-4 text-center text-gray-500">
-          © {new Date().getFullYear()} AI Real Estate Copy. All rights reserved.
+            © {new Date().getFullYear()} AI Real Estate Copy. All rights reserved.
           </footer>
-        </SessionProviderWrapper> 
+        </SessionProviderWrapper>
         <LinkedInInsightTag />
       </body>
     </html>
