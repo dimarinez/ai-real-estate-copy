@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FaCopy, FaSave, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
 import { Autocomplete, useLoadScript, Libraries } from '@react-google-maps/api';
 import imageCompression from 'browser-image-compression';
@@ -77,6 +77,8 @@ export default function GenerateListing() {
   const [copied, setCopied] = useState<string | null>(null);
   const [redirectUrl, setRedirectUrl] = useState('');
   const [isMounted, setIsMounted] = useState(false);
+
+  const generatedTextRef = useRef<HTMLDivElement>(null);
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS || '',
@@ -200,6 +202,12 @@ export default function GenerateListing() {
     maxFiles: 10,
     disabled: loading,
   });
+
+  useEffect(() => {
+    if (generatedText && generatedTextRef.current) {
+      generatedTextRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [generatedText]);
 
   const handleGenerate = async () => {
     if (photos.length === 0) {
@@ -586,7 +594,9 @@ export default function GenerateListing() {
       </div>
 
       {generatedText && (
-        <div className="mt-8 bg-white p-8 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
+        <div 
+        ref={generatedTextRef}
+        className="mt-8 bg-white p-8 rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-shadow">
           <div className="mb-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-semibold text-gray-800">Generated Listing</h2>
