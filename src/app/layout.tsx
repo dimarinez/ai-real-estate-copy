@@ -1,5 +1,4 @@
-// app/layout.tsx
-import React from "react"; // Add this import
+import React from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./styles/globals.css";
@@ -29,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-YE24MELHFK"></script>
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-YE24MELHFK"></script>
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -37,6 +36,7 @@ export default function RootLayout({
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
               gtag('config', 'G-YE24MELHFK');
+              gtag('config', 'AW-XXXXXXXXX'); // Add Google Ads Conversion ID
             `,
           }}
         />

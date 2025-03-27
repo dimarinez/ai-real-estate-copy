@@ -59,6 +59,7 @@ export default function GenerateListing() {
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const [generatedText, setGeneratedText] = useState('');
+  const [additionalDetails, setAdditionalDetails] = useState<string>('');
   const [socialContent, setSocialContent] = useState<SocialContent>({
     twitter: '',
     instagram: '',
@@ -259,6 +260,7 @@ export default function GenerateListing() {
           language,
           location: includeInsights ? location : undefined,
           exampleListing: exampleListing || undefined,
+          additionalDetails: additionalDetails.trim() || undefined, // Add this
         }),
       });
 
@@ -536,6 +538,24 @@ export default function GenerateListing() {
             />
             <p className="mt-1 text-xs text-gray-500">
               Enter text to match its word count, style, and tone. Only the format will be copied, not the details.
+            </p>
+          </div>
+
+          <div className="relative">
+            <label htmlFor="additionalDetails" className="block text-sm font-medium text-gray-700 mb-1">
+              Additional Details (Optional)
+            </label>
+            <textarea
+              id="additionalDetails"
+              value={additionalDetails}
+              onChange={(e) => setAdditionalDetails(e.target.value)}
+              disabled={loading}
+              className="w-full p-3 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-200 disabled:text-gray-400 transition-all"
+              placeholder="Add any details (e.g., Year Built: 1995, Neighborhood: Downtown, Proximity to Beach: 2 miles)"
+              rows={4}
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Include any extra property info to enhance your listing (e.g., year built, neighborhood, etc.).
             </p>
           </div>
 

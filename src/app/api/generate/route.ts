@@ -219,7 +219,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { imageUrls, tone, language, location, exampleListing } = body;
+  const { imageUrls, tone, language, location, exampleListing, additionalDetails } = body;
 
   if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
     return NextResponse.json({ error: 'At least one photo URL is required.' }, { status: 400 });
@@ -232,6 +232,7 @@ export async function POST(req: NextRequest) {
   const { genericMetrics, specificMetrics } = await fetchGeoapifyMetrics(location);
 
   const exampleText = exampleListing ? exampleListing.trim() : '';
+  const additionalDetailsText = additionalDetails ? additionalDetails.trim() : '';
 
   try {
     const amenitiesList = Object.entries(genericMetrics)
@@ -239,19 +240,27 @@ export async function POST(req: NextRequest) {
       .map(([key, value]) => `${value} (${key})`)
       .join(', ');
 
-      const prompt = exampleText
+    const prompt = exampleText
       ? `Here is an example real estate listing for style reference only: "${exampleText}". Analyze these ${imageUrls.length} photos and generate a single real estate listing in ${effectiveLanguage}. Match the writing style, tone, and approximate word count of the example, but base all factual content solely on the provided photos and the following data (do not invent details or reuse specifics from the example). ${
           location && amenitiesList ? `Incorporate these nearby amenities within 1km: ${amenitiesList}. ` : ''
+        }${
+          additionalDetailsText ? `Incorporate these additional details: ${additionalDetailsText}. ` : ''
         }Combine all details into a captivating description.${
           user.subscriptionStatus !== 'free'
-            ? ` Then, generate social media posts${location && amenitiesList ? ' including a few of these amenities' : ''}: Twitter (25 words max), Instagram (30 words max), Facebook (50 words max), LinkedIn (75 words max). Match the style and tone of the example listing, using only the provided photos and data for facts. Separate each section with "---" and do not include platform names or headers—just the raw text.`
+            ? ` Then, generate social media posts${location && amenitiesList ? ' including a few of these amenities' : ''}${
+                additionalDetailsText ? ' and some of these additional details' : ''
+              }: Twitter (25 words max), Instagram (30 words max), Facebook (50 words max), LinkedIn (75 words max). Match the style and tone of the example listing, using only the provided photos and data for facts. Separate each section with "---" and do not include platform names or headers—just the raw text.`
             : ''
         }`
       : `Analyze these ${imageUrls.length} photos and generate a single ${effectiveTone} real estate listing in ${effectiveLanguage}, max ${effectiveMaxWords} words. ${
           location && amenitiesList ? `Incorporate these nearby amenities within 1km: ${amenitiesList}. ` : ''
+        }${
+          additionalDetailsText ? `Incorporate these additional details: ${additionalDetailsText}. ` : ''
         }Combine all details into a captivating description.${
           user.subscriptionStatus !== 'free'
-            ? ` Then, generate social media posts${location && amenitiesList ? ' including a few of these amenities' : ''}: Twitter (25 words max), Instagram (30 words max), Facebook (50 words max), LinkedIn (75 words max). Separate each section with "---" and do not include platform names or headers—just the raw text.`
+            ? ` Then, generate social media posts${location && amenitiesList ? ' including a few of these amenities' : ''}${
+                additionalDetailsText ? ' and some of these additional details' : ''
+              }: Twitter (25 words max), Instagram (30 words max), Facebook (50 words max), LinkedIn (75 words max). Separate each section with "---" and do not include platform names or headers—just the raw text.`
             : ''
         }`;
 
@@ -279,7 +288,9 @@ export async function POST(req: NextRequest) {
     const gptOutput = response.choices[0]?.message.content || '';
 
     const sections = gptOutput.split('---').map((s) => s.trim());
-    const listing = sections[0] || `A beautifully designed home${location && amenitiesList ? ` near ${amenitiesList.split(', ').slice(0, 3).join(', ')}` : ''}.`;
+    const listing = sections[0] || `A beautifully designed home${location && amenitiesList ? ` near ${amenitiesList.split(', ').slice(0, 3).join(', ')}` : ''}${
+      additionalDetailsText ? ` with ${additionalDetailsText}` : ''
+    }.`;
     const socialParts = sections.slice(1);
 
     const cleanSocialParts = socialParts.map((part) => part.trim());
@@ -288,23 +299,23 @@ export async function POST(req: NextRequest) {
           twitter:
             cleanSocialParts[0] ||
             (location && amenitiesList
-              ? `Dream home near ${genericMetrics.cafe || genericMetrics.park || 'amenities'}! Tour now! #RealEstate`
-              : 'Dream home for sale! Tour now! #RealEstate'),
+              ? `Dream home near ${genericMetrics.cafe || genericMetrics.park || 'amenities'}!${additionalDetailsText ? ` ${additionalDetailsText.split(', ')[0]}` : ''} Tour now! #RealEstate`
+              : `Dream home for sale!${additionalDetailsText ? ` ${additionalDetailsText.split(', ')[0]}` : ''} Tour now! #RealEstate`),
           instagram:
             cleanSocialParts[1] ||
             (location && amenitiesList
-              ? `Stunning retreat by ${genericMetrics.cafe || genericMetrics.grocery || 'local spots'}! #HomeGoals`
-              : 'Stunning retreat for sale! #HomeGoals'),
+              ? `Stunning retreat by ${genericMetrics.cafe || genericMetrics.grocery || 'local spots'}!${additionalDetailsText ? ` ${additionalDetailsText.split(', ')[0]}` : ''} #HomeGoals`
+              : `Stunning retreat for sale!${additionalDetailsText ? ` ${additionalDetailsText.split(', ')[0]}` : ''} #HomeGoals`),
           facebook:
             cleanSocialParts[2] ||
             (location && amenitiesList
-              ? `Discover elegance near ${[genericMetrics.cafe, genericMetrics.park, genericMetrics.grocery].filter(Boolean).slice(0, 3).join(', ')}. Contact us!`
-              : 'Discover this elegant home. Contact us!'),
+              ? `Discover elegance near ${[genericMetrics.cafe, genericMetrics.park, genericMetrics.grocery].filter(Boolean).slice(0, 3).join(', ')}.${additionalDetailsText ? ` ${additionalDetailsText}` : ''} Contact us!`
+              : `Discover this elegant home.${additionalDetailsText ? ` ${additionalDetailsText}` : ''} Contact us!`),
           linkedin:
             cleanSocialParts[3] ||
             (location && amenitiesList
-              ? `New listing: Modern home near ${[genericMetrics.cafe, genericMetrics.park, genericMetrics.school].filter(Boolean).slice(0, 3).join(', ')}. #RealEstate`
-              : 'New listing: Modern home available. #RealEstate'),
+              ? `New listing: Modern home near ${[genericMetrics.cafe, genericMetrics.park, genericMetrics.school].filter(Boolean).slice(0, 3).join(', ')}.${additionalDetailsText ? ` ${additionalDetailsText}` : ''} #RealEstate`
+              : `New listing: Modern home available.${additionalDetailsText ? ` ${additionalDetailsText}` : ''} #RealEstate`),
         }
       : {};
 
